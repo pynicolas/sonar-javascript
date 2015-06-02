@@ -17,26 +17,25 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02
  */
-package org.sonar.plugins.javascript.api.tree.expression;
+package org.sonar.javascript.checks;
 
-import com.google.common.annotations.Beta;
-import org.sonar.plugins.javascript.api.tree.lexical.SyntaxToken;
+import org.junit.Test;
+import org.sonar.javascript.checks.utils.TreeCheckTest;
+import org.sonar.squidbridge.api.SourceFile;
+import org.sonar.squidbridge.checks.CheckMessagesVerifier;
 
+public class ArraySortCheckTest extends TreeCheckTest {
 
-/**
- * <a href="http://www.ecma-international.org/ecma-262/5.1/#sec-11.2.1">Property Accessors</a>.
- * <pre>
- *   {@link #object()} . {@link #property()}
- * </pre>
- */
-@Beta
-public interface DotMemberExpressionTree extends MemberExpressionTree {
-  @Override
-  ExpressionTree object();
+  private ArraySortCheck check = new ArraySortCheck();
 
-  SyntaxToken dot();
+  @Test
+  public void test() {
+    SourceFile file = scanFile("src/test/resources/checks/ArraySort.js", check);
+    CheckMessagesVerifier.verify(file.getCheckMessages())
+    .next().atLine(3)
+    .next().atLine(10)
+    .next().atLine(16)
+    .noMore();
 
-  @Override
-  ExpressionTree property();
-
+  }
 }

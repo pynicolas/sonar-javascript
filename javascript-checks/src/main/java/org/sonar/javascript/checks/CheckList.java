@@ -139,7 +139,8 @@ public final class CheckList {
         IdChildrenSelectorCheck.class,
         UniversalSelectorCheck.class,
         DeleteArrayElementCheck.class,
-        ElementTypeSelectorCheck.class);
+        ElementTypeSelectorCheck.class,
+        ArraySortCheck.class);
   }
 
 }
