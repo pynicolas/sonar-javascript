@@ -25,6 +25,7 @@ import org.sonar.plugins.javascript.api.tree.Tree;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
 
 import java.io.File;
+import java.util.List;
 
 @Beta
 public interface AstTreeVisitorContext {
@@ -42,6 +43,8 @@ public interface AstTreeVisitorContext {
    * @param message the issue message.
    */
   void addIssue(JavaScriptCheck check, Tree tree, String message);
+
+  void addIssue(JavaScriptCheck check, Tree tree, String message, List<Tree> secondaryLocations);
 
   /**
    * Creates an issue.

@@ -34,6 +34,7 @@ import org.sonar.api.checks.NoSonarFilter;
 import org.sonar.api.component.ResourcePerspectives;
 import org.sonar.api.config.Settings;
 import org.sonar.api.issue.Issuable;
+import org.sonar.api.issue.Issuable.IssueBuilder;
 import org.sonar.api.issue.Issue;
 import org.sonar.api.measures.CoreMetrics;
 import org.sonar.api.measures.FileLinesContextFactory;
@@ -46,12 +47,15 @@ import org.sonar.api.rule.RuleKey;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.source.Highlightable;
 import org.sonar.javascript.EcmaScriptConfiguration;
+import org.sonar.javascript.IssueSaver;
 import org.sonar.javascript.JavaScriptAstScanner;
+import org.sonar.javascript.JavaScriptCheckMessage;
 import org.sonar.javascript.api.EcmaScriptMetric;
 import org.sonar.javascript.ast.visitors.VisitorsBridge;
 import org.sonar.javascript.checks.CheckList;
 import org.sonar.javascript.highlighter.JavaScriptHighlighter;
 import org.sonar.javascript.metrics.FileLinesVisitor;
+import org.sonar.javascript.sq52.Sq52IssueSaver;
 import org.sonar.plugins.javascript.api.CustomJavaScriptRulesDefinition;
 import org.sonar.plugins.javascript.api.JavaScriptFileScanner;
 import org.sonar.plugins.javascript.core.JavaScript;
@@ -68,6 +72,7 @@ import org.sonar.squidbridge.indexer.QueryByType;
 import org.sonar.sslr.parser.LexerlessGrammar;
 
 import javax.annotation.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -175,7 +180,9 @@ public class JavaScriptSquidSensor implements Sensor {
     for (SourceCode squidSourceFile : squidSourceFiles) {
       SourceFile squidFile = (SourceFile) squidSourceFile;
 
-      File sonarFile = context.getResource(File.create(pathResolver.relativePath(fileSystem.baseDir(), new java.io.File(squidFile.getKey()))));
+      String relativePath = pathResolver.relativePath(fileSystem.baseDir(), new java.io.File(squidFile.getKey()));
+      File sonarFile = context.getResource(File.create(relativePath));
+      InputFile inputFile = fileSystem.inputFile(fileSystem.predicates().hasRelativePath(relativePath));
 
       if (sonarFile != null) {
         noSonarFilter.addResource(sonarFile, squidFile.getNoSonarTagLines());
@@ -183,7 +190,7 @@ public class JavaScriptSquidSensor implements Sensor {
         saveFilesComplexityDistribution(sonarFile, squidFile);
         saveFunctionsComplexityAndDistribution(sonarFile, squidFile);
         saveMeasures(sonarFile, squidFile);
-        saveIssues(sonarFile, squidFile);
+        saveIssues(inputFile, sonarFile, squidFile);
 
       } else {
         LOG.warn("Cannot save analysis information for file {}. Unable to retrieve the associated sonar resource.", squidFile.getKey());
@@ -235,7 +242,18 @@ public class JavaScriptSquidSensor implements Sensor {
     context.saveMeasure(sonarFile, complexityDistribution.build().setPersistenceMode(PersistenceMode.MEMORY));
   }
 
-  private void saveIssues(File sonarFile, SourceFile squidFile) {
+  private static final IssueSaver ISSUE_SAVER = isSq52() ? new Sq52IssueSaver() : new Sq45IssueSaver();
+
+  private static boolean isSq52() {
+    try {
+      IssueBuilder.class.getMethod("newLocation");
+    } catch (NoSuchMethodException e) {
+      return false;
+    }
+    return true;
+  }
+
+  private void saveIssues(InputFile inputFile, File sonarFile, SourceFile squidFile) {
     Collection<CheckMessage> messages = squidFile.getCheckMessages();
     if (messages != null) {
 
@@ -244,15 +262,24 @@ public class JavaScriptSquidSensor implements Sensor {
         Issuable issuable = resourcePerspectives.as(Issuable.class, sonarFile);
 
         if (issuable != null && ruleKey != null) {
-          Issue issue = issuable.newIssueBuilder()
-            .ruleKey(ruleKey)
-            .line(message.getLine())
-            .message(message.getText(Locale.ENGLISH))
-            .build();
-          issuable.addIssue(issue);
+          ISSUE_SAVER.save(inputFile, issuable, ruleKey, (JavaScriptCheckMessage) message);
         }
       }
     }
+  }
+
+  private static class Sq45IssueSaver implements IssueSaver {
+
+    @Override
+    public void save(InputFile file, Issuable issuable, RuleKey ruleKey, JavaScriptCheckMessage message) {
+      Issue issue = issuable.newIssueBuilder()
+        .ruleKey(ruleKey)
+        .line(message.getLine())
+        .message(message.getText(Locale.ENGLISH))
+        .build();
+      issuable.addIssue(issue);
+    }
+
   }
 
   @Override

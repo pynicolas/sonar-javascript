@@ -20,17 +20,19 @@
 package org.sonar.javascript.ast.visitors;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import org.sonar.api.config.Settings;
+import org.sonar.javascript.JavaScriptCheckMessage;
 import org.sonar.javascript.model.internal.JavaScriptTree;
 import org.sonar.plugins.javascript.api.AstTreeVisitorContext;
 import org.sonar.plugins.javascript.api.JavaScriptCheck;
 import org.sonar.plugins.javascript.api.symbols.SymbolModel;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
 import org.sonar.plugins.javascript.api.tree.Tree;
-import org.sonar.squidbridge.api.CheckMessage;
 import org.sonar.squidbridge.api.SourceFile;
 
 import java.io.File;
+import java.util.List;
 
 public class AstTreeVisitorContextImpl implements AstTreeVisitorContext {
   private final ScriptTree tree;
@@ -54,7 +56,7 @@ public class AstTreeVisitorContextImpl implements AstTreeVisitorContext {
 
   @Override
   public void addIssue(JavaScriptCheck check, Tree tree, String message) {
-    commonAddIssue(check, getLine(tree), message, -1);
+    addIssue(check, tree, message, ImmutableList.<Tree>of());
   }
 
   @Override
@@ -87,6 +89,19 @@ public class AstTreeVisitorContextImpl implements AstTreeVisitorContext {
     return file;
   }
 
+  @Override
+  public void addIssue(JavaScriptCheck check, Tree tree, String message, List<Tree> secondaryLocations) {
+    Preconditions.checkNotNull(check);
+    Preconditions.checkNotNull(message);
+
+    JavaScriptCheckMessage checkMessage = new JavaScriptCheckMessage(check, message);
+
+    checkMessage.setPrimaryLocation(tree);
+    checkMessage.setSecondaryLocations(secondaryLocations);
+    sourceFile.log(checkMessage);
+  
+  }
+
   /**
    * Cost is set if <code>cost<code/> is more than zero.
    * */
@@ -94,7 +109,7 @@ public class AstTreeVisitorContextImpl implements AstTreeVisitorContext {
     Preconditions.checkNotNull(check);
     Preconditions.checkNotNull(message);
 
-    CheckMessage checkMessage = new CheckMessage(check, message);
+    JavaScriptCheckMessage checkMessage = new JavaScriptCheckMessage(check, message);
     if (cost > 0) {
       checkMessage.setCost(cost);
     }

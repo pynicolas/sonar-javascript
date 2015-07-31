@@ -49,6 +49,11 @@
       <artifactId>javascript-checks</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>javascript-sq52</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.codehaus.sonar</groupId>
