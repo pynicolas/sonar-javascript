@@ -153,6 +153,7 @@ public final class CheckList {
       TrailingCommaCheck.class,
       TrailingCommentCheck.class,
       TrailingWhitespaceCheck.class,
+      TypeErrorOnNullOrUndefinedCheck.class,
       UnaryPlusMinusWithObjectCheck.class,
       UnchangedLetVariableCheck.class,
       UndefinedAssignmentCheck.class,

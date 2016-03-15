@@ -62,6 +62,7 @@ import org.sonar.javascript.checks.RedeclaredSymbolCheck;
 import org.sonar.javascript.checks.ReturnInSetterCheck;
 import org.sonar.javascript.checks.SelfAssignmentCheck;
 import org.sonar.javascript.checks.TrailingCommaCheck;
+import org.sonar.javascript.checks.TypeErrorOnNullOrUndefinedCheck;
 import org.sonar.javascript.checks.UnaryPlusMinusWithObjectCheck;
 import org.sonar.javascript.checks.UpdatedConstVariableCheck;
 import org.sonar.javascript.checks.UselessExpressionStatementCheck;
@@ -124,6 +125,7 @@ public class JavaScriptSecurityProfile extends ProfileDefinition {
       ReturnInSetterCheck.class,
       SelfAssignmentCheck.class,
       TrailingCommaCheck.class,
+      TypeErrorOnNullOrUndefinedCheck.class,
       UnaryPlusMinusWithObjectCheck.class,
       UpdatedConstVariableCheck.class,
       UselessExpressionStatementCheck.class,
