@@ -10,7 +10,7 @@ function f2() {
   a = 1;
   foo(a.x);
   a = null;
-  foo(a.x); // Noncompliant [[sc=7;ec=8]] {{"a" is null or undefined}}
+  foo(a.x); // Noncompliant [[sc=7;ec=8]] {{"a" may be null or undefined}}
 }
 
 function f2() {
@@ -121,6 +121,30 @@ function protected_call() {
   if (b) {
     a.x; // Noncompliant
   }
+}
+
+function not_condition() {
+  var a;
+  if (!a) {
+    return;
+  }
+  a.x;
+}
+
+function xxx() {
+  var a;
+  var b = random();
+  if (b) {
+    a = 42;
+  }
+  if (!b || a.x) {
+  }
+}
+
+function only_one_issue_should_be_reported_per_symbol() {
+  var a;
+  a.x; // Noncompliant
+  a.y;
 }
 
 function only_one_issue_should_be_reported_for_multiple_paths() {

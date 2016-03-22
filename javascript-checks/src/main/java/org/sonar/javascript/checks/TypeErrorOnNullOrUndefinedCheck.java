@@ -46,6 +46,7 @@ import org.sonar.plugins.javascript.api.tree.expression.AssignmentExpressionTree
 import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.IdentifierTree;
 import org.sonar.plugins.javascript.api.tree.expression.MemberExpressionTree;
+import org.sonar.plugins.javascript.api.tree.expression.UnaryExpressionTree;
 import org.sonar.plugins.javascript.api.tree.statement.BlockTree;
 import org.sonar.plugins.javascript.api.tree.statement.CatchBlockTree;
 import org.sonar.plugins.javascript.api.tree.statement.ForObjectStatementTree;
@@ -96,7 +97,7 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
     private final Set<Symbol> trackedVariables;
     private final Set<Symbol> functionParameters;
     private final Deque<BlockExecution> workList = new ArrayDeque<>();
-    private final Set<Tree> reportedTrees = new HashSet<>();
+    private final Set<Symbol> reportedSymbols = new HashSet<>();
 
     public SymbolicExecution(Scope functionScope, ControlFlowGraph cfg) {
       cfgStartNode = cfg.start();
@@ -189,11 +190,19 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
           queueAllSuccessors(block, currentState);
         } else if (branchingTree.is(Kind.IF_STATEMENT, Kind.WHILE_STATEMENT, Kind.FOR_STATEMENT, Kind.DO_WHILE_STATEMENT, Kind.CONDITIONAL_AND, Kind.CONDITIONAL_OR)) {
           Tree lastElement = block.elements().get(block.elements().size() - 1);
+          ControlFlowNode truthySuccessor = block.trueSuccessor();
+          ControlFlowNode falsySuccessor = block.falseSuccessor();
+          if (lastElement.is(Kind.LOGICAL_COMPLEMENT)) {
+            UnaryExpressionTree unary = (UnaryExpressionTree) lastElement;
+            lastElement = unary.expression();
+            truthySuccessor = block.falseSuccessor();
+            falsySuccessor = block.trueSuccessor();
+          }
           Symbol trackedVariable = trackedVariable(lastElement);
           if (trackedVariable != null) {
             ProgramState trueState = currentState.copyAndAddValue(trackedVariable, SymbolicValue.UNKNOWN);
-            queue(block, trueState, block.trueSuccessor());
-            queue(block, currentState, block.falseSuccessor());
+            queue(block, trueState, truthySuccessor);
+            queue(block, currentState, falsySuccessor);
             return;
           }
           queueAllSuccessors(block, currentState);
@@ -217,11 +226,11 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
     private void visitMemberExpression(ProgramState currentState, MemberExpressionTree memberExpression, ControlFlowBlock block) {
       ExpressionTree object = memberExpression.object();
       Symbol trackedVariable = trackedVariable(object);
-      if (trackedVariable != null && !reportedTrees.contains(object)) {
+      if (trackedVariable != null && !reportedSymbols.contains(trackedVariable)) {
         SymbolicValue value = currentState.get(trackedVariable);
         if (value == null || value.isAlwaysNullOrUndefined()) {
-          addIssue(object, String.format("\"%s\" is null or undefined", trackedVariable.name()));
-          reportedTrees.add(object);
+          addIssue(object, String.format("\"%s\" may be null or undefined", trackedVariable.name()));
+          reportedSymbols.add(trackedVariable);
         }
       }
     }

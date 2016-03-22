@@ -25,7 +25,7 @@ import org.sonar.plugins.javascript.api.tree.expression.IdentifierTree;
 
 public class SymbolicValue {
 
-  private static final SymbolicValue NULL_OR_UNDEFINED = new SymbolicValue(true);
+  public static final SymbolicValue NULL_OR_UNDEFINED = new SymbolicValue(true);
   private static final SymbolicValue OTHER = new SymbolicValue(false);
 
   public static final SymbolicValue UNKNOWN = OTHER;
