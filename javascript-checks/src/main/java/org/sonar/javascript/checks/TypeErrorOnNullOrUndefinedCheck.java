@@ -19,15 +19,12 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multiset;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import org.sonar.api.server.rule.RulesDefinition.SubCharacteristics;
@@ -98,10 +95,8 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
     private final ControlFlowNode cfgStartNode;
     private final Set<Symbol> trackedVariables;
     private final Set<Symbol> functionParameters;
-    private final Multiset<ControlFlowBlock> visitedBlocks = HashMultiset.create();
-    private final Multiset<Tree> typeErrors = HashMultiset.create();
-    private final Map<Tree, ControlFlowBlock> blockByTree = new HashMap<>();
     private final Deque<BlockExecution> workList = new ArrayDeque<>();
+    private final Set<Tree> reportedTrees = new HashSet<>();
 
     public SymbolicExecution(Scope functionScope, ControlFlowGraph cfg) {
       cfgStartNode = cfg.start();
@@ -137,17 +132,6 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
       for (int i = 0; i < 1000 && !workList.isEmpty(); i++) {
         execute(workList.removeFirst());
       }
-      
-      reportIssues();
-    }
-
-    private void reportIssues() {
-      for (Tree tree : typeErrors.elementSet()) {
-        ControlFlowBlock block = blockByTree.get(tree);
-        if (typeErrors.count(tree) == visitedBlocks.count(block)) {
-          addIssue(tree, String.format("\"%s\" is null or undefined", tree.toString()));
-        }
-      }
     }
 
     private void execute(BlockExecution blockExecution) {
@@ -171,15 +155,23 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
         }
       }
 
-      currentState = visitBranchingTree(block.branchingTree(), currentState);
-
-      for (ControlFlowBlock successor : Iterables.filter(block.successors(), ControlFlowBlock.class)) {
-        workList.addLast(new BlockExecution(successor, currentState.copyAndAddVisitedBlock(block)));
-      }
-      visitedBlocks.add(block);
+      visitBranchingTree(block, currentState);
     }
 
-    private ProgramState visitBranchingTree(Tree branchingTree, ProgramState incomingState) {
+    private void queueAllSuccessors(ControlFlowBlock block, ProgramState currentState) {
+      for (ControlFlowBlock successor : Iterables.filter(block.successors(), ControlFlowBlock.class)) {
+        queue(block, currentState, successor);
+      }
+    }
+
+    private void queue(ControlFlowBlock block, ProgramState currentState, ControlFlowNode successor) {
+      if (successor instanceof ControlFlowBlock) {
+        workList.addLast(new BlockExecution((ControlFlowBlock) successor, currentState.copyAndAddVisitedBlock(block)));
+      }
+    }
+
+    private void visitBranchingTree(ControlFlowBlock block, ProgramState incomingState) {
+      Tree branchingTree = block.branchingTree();
       ProgramState currentState = incomingState;
       if (branchingTree != null) {
         if (branchingTree.is(Kind.FOR_IN_STATEMENT, Kind.FOR_OF_STATEMENT)) {
@@ -190,12 +182,27 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
             variable = declaration.variables().get(0);
           }
           currentState = store(currentState, variable, forTree.expression());
+          queueAllSuccessors(block, currentState);
         } else if (branchingTree.is(Kind.CATCH_BLOCK)) {
           CatchBlockTree catchBlock = (CatchBlockTree) branchingTree;
           currentState = currentState.copyAndAddValue(trackedVariable(catchBlock.parameter()), SymbolicValue.UNKNOWN);
+          queueAllSuccessors(block, currentState);
+        } else if (branchingTree.is(Kind.IF_STATEMENT, Kind.WHILE_STATEMENT, Kind.FOR_STATEMENT, Kind.DO_WHILE_STATEMENT, Kind.CONDITIONAL_AND, Kind.CONDITIONAL_OR)) {
+          Tree lastElement = block.elements().get(block.elements().size() - 1);
+          Symbol trackedVariable = trackedVariable(lastElement);
+          if (trackedVariable != null) {
+            ProgramState trueState = currentState.copyAndAddValue(trackedVariable, SymbolicValue.UNKNOWN);
+            queue(block, trueState, block.trueSuccessor());
+            queue(block, currentState, block.falseSuccessor());
+            return;
+          }
+          queueAllSuccessors(block, currentState);
+        } else {
+          queueAllSuccessors(block, currentState);
         }
+      } else {
+        queueAllSuccessors(block, currentState);
       }
-      return currentState;
     }
 
     private ProgramState store(ProgramState currentState, Tree left, ExpressionTree right) {
@@ -210,11 +217,11 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
     private void visitMemberExpression(ProgramState currentState, MemberExpressionTree memberExpression, ControlFlowBlock block) {
       ExpressionTree object = memberExpression.object();
       Symbol trackedVariable = trackedVariable(object);
-      if (trackedVariable != null) {
+      if (trackedVariable != null && !reportedTrees.contains(object)) {
         SymbolicValue value = currentState.get(trackedVariable);
         if (value == null || value.isAlwaysNullOrUndefined()) {
-          blockByTree.put(object, block);
-          typeErrors.add(object);
+          addIssue(object, String.format("\"%s\" is null or undefined", trackedVariable.name()));
+          reportedTrees.add(object);
         }
       }
     }

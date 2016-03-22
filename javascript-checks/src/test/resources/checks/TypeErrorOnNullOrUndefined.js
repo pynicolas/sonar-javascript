@@ -74,7 +74,6 @@ function basic_if() {
   var a;
   if (condition) {
     a = 1;
-    return;
   }
   a.x; // Noncompliant
 }
@@ -106,12 +105,39 @@ function catch_exception() {
 }
 
 function protected_call() {
+  var a = 42;
+  var b = random();
+  if (condition()) {
+    a = null;
+  }
+  if (a) {
+    a.x;
+  }
+  if (a && a.x) {
+  }
+  if (a || a) {
+    a.x;
+  }
+  if (b) {
+    a.x; // Noncompliant
+  }
+}
+
+function only_one_issue_should_be_reported_for_multiple_paths() {
+  var a, b;
+  if (condition) {
+    b = 1;
+  }
+  a.x; // Noncompliant
+}
+
+function protected_call_in_loop() {
   var a;
   while (condition()) {
-    if (!a) {
-      a = 1;
+    if (a) {
+      a.x;
     } else {
-      a.x; // FP
+      a = 1;
     }
     doSomething();
   }
