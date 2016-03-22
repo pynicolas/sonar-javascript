@@ -19,14 +19,14 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
+
 import org.sonar.api.server.rule.RulesDefinition.SubCharacteristics;
 import org.sonar.check.Priority;
 import org.sonar.check.Rule;
@@ -36,6 +36,7 @@ import org.sonar.javascript.cfg.ControlFlowNode;
 import org.sonar.javascript.checks.se.LocalVariables;
 import org.sonar.javascript.se.ProgramState;
 import org.sonar.javascript.se.SymbolicValue;
+import org.sonar.javascript.se.SymbolicValue.Truthiness;
 import org.sonar.javascript.tree.symbols.Scope;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 import org.sonar.plugins.javascript.api.tree.Tree;
@@ -55,6 +56,9 @@ import org.sonar.plugins.javascript.api.visitors.SubscriptionVisitorCheck;
 import org.sonar.squidbridge.annotations.ActivatedByDefault;
 import org.sonar.squidbridge.annotations.SqaleConstantRemediation;
 import org.sonar.squidbridge.annotations.SqaleSubCharacteristic;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 @Rule(
   key = "S2259",
@@ -156,26 +160,38 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
         }
       }
 
-      visitBranchingTree(block, currentState);
+      handleSuccessors(block, currentState);
     }
 
-    private void queueAllSuccessors(ControlFlowBlock block, ProgramState currentState) {
+    private void pushAllSuccessors(ControlFlowBlock block, ProgramState currentState) {
       for (ControlFlowBlock successor : Iterables.filter(block.successors(), ControlFlowBlock.class)) {
-        queue(block, currentState, successor);
+        pushSuccessor(block, currentState, successor);
       }
     }
 
-    private void queue(ControlFlowBlock block, ProgramState currentState, ControlFlowNode successor) {
+    private void pushSuccessor(ControlFlowBlock block, ProgramState currentState, ControlFlowNode successor) {
       if (successor instanceof ControlFlowBlock) {
         workList.addLast(new BlockExecution((ControlFlowBlock) successor, currentState.copyAndAddVisitedBlock(block)));
       }
     }
 
-    private void visitBranchingTree(ControlFlowBlock block, ProgramState incomingState) {
+    private void handleSuccessors(ControlFlowBlock block, ProgramState incomingState) {
       Tree branchingTree = block.branchingTree();
       ProgramState currentState = incomingState;
       if (branchingTree != null) {
-        if (branchingTree.is(Kind.FOR_IN_STATEMENT, Kind.FOR_OF_STATEMENT)) {
+
+        if (branchingTree.is(
+          Kind.IF_STATEMENT,
+          Kind.WHILE_STATEMENT,
+          Kind.FOR_STATEMENT,
+          Kind.DO_WHILE_STATEMENT,
+          Kind.CONDITIONAL_AND,
+          Kind.CONDITIONAL_OR)) {
+
+          handleConditionSuccessors(block, currentState);
+          return;
+
+        } else if (branchingTree.is(Kind.FOR_IN_STATEMENT, Kind.FOR_OF_STATEMENT)) {
           ForObjectStatementTree forTree = (ForObjectStatementTree) branchingTree;
           Tree variable = forTree.variableOrExpression();
           if (variable.is(Kind.VAR_DECLARATION)) {
@@ -183,34 +199,44 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
             variable = declaration.variables().get(0);
           }
           currentState = store(currentState, variable, forTree.expression());
-          queueAllSuccessors(block, currentState);
+
         } else if (branchingTree.is(Kind.CATCH_BLOCK)) {
           CatchBlockTree catchBlock = (CatchBlockTree) branchingTree;
           currentState = currentState.copyAndAddValue(trackedVariable(catchBlock.parameter()), SymbolicValue.UNKNOWN);
-          queueAllSuccessors(block, currentState);
-        } else if (branchingTree.is(Kind.IF_STATEMENT, Kind.WHILE_STATEMENT, Kind.FOR_STATEMENT, Kind.DO_WHILE_STATEMENT, Kind.CONDITIONAL_AND, Kind.CONDITIONAL_OR)) {
-          Tree lastElement = block.elements().get(block.elements().size() - 1);
-          ControlFlowNode truthySuccessor = block.trueSuccessor();
-          ControlFlowNode falsySuccessor = block.falseSuccessor();
-          if (lastElement.is(Kind.LOGICAL_COMPLEMENT)) {
-            UnaryExpressionTree unary = (UnaryExpressionTree) lastElement;
-            lastElement = unary.expression();
-            truthySuccessor = block.falseSuccessor();
-            falsySuccessor = block.trueSuccessor();
-          }
-          Symbol trackedVariable = trackedVariable(lastElement);
-          if (trackedVariable != null) {
-            ProgramState trueState = currentState.copyAndAddValue(trackedVariable, SymbolicValue.UNKNOWN);
-            queue(block, trueState, truthySuccessor);
-            queue(block, currentState, falsySuccessor);
-            return;
-          }
-          queueAllSuccessors(block, currentState);
-        } else {
-          queueAllSuccessors(block, currentState);
+        }
+      }
+
+      pushAllSuccessors(block, currentState);
+    }
+
+    private void handleConditionSuccessors(ControlFlowBlock block, ProgramState currentState) {
+      Symbol trackedVariable;
+      Truthiness trueSuccessorTruthiness;
+      Truthiness falseSuccessorTruthiness;
+
+      Tree lastElement = block.elements().get(block.elements().size() - 1);
+      if (lastElement.is(Kind.LOGICAL_COMPLEMENT)) {
+        UnaryExpressionTree unary = (UnaryExpressionTree) lastElement;
+        trackedVariable = trackedVariable(unary.expression());
+        trueSuccessorTruthiness = SymbolicValue.Truthiness.FALSY;
+        falseSuccessorTruthiness = SymbolicValue.Truthiness.TRUTHY;
+      } else {
+        trackedVariable = trackedVariable(lastElement);
+        trueSuccessorTruthiness = SymbolicValue.Truthiness.TRUTHY;
+        falseSuccessorTruthiness = SymbolicValue.Truthiness.FALSY;
+      }
+
+      if (trackedVariable != null) {
+        SymbolicValue curentValue = currentState.get(trackedVariable);
+        Truthiness currentTruthiness = curentValue == null ? SymbolicValue.Truthiness.FALSY : curentValue.truthiness();
+        if (currentTruthiness != falseSuccessorTruthiness) {
+          pushSuccessor(block, currentState.constrain(trackedVariable, trueSuccessorTruthiness), block.trueSuccessor());
+        }
+        if (currentTruthiness != trueSuccessorTruthiness) {
+          pushSuccessor(block, currentState.constrain(trackedVariable, falseSuccessorTruthiness), block.falseSuccessor());
         }
       } else {
-        queueAllSuccessors(block, currentState);
+        pushAllSuccessors(block, currentState);
       }
     }
 

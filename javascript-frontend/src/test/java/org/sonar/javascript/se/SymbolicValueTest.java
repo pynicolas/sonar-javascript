@@ -23,6 +23,7 @@ import com.google.common.base.Charsets;
 import com.sonar.sslr.api.typed.ActionParser;
 import org.junit.Test;
 import org.sonar.javascript.parser.JavaScriptParserBuilder;
+import org.sonar.javascript.se.SymbolicValue.Truthiness;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
 import org.sonar.plugins.javascript.api.tree.Tree;
 import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
@@ -36,12 +37,16 @@ public class SymbolicValueTest {
 
   @Test
   public void null_value() throws Exception {
-    assertThat(symbolicValue("null").isAlwaysNullOrUndefined()).isTrue();
+    SymbolicValue value = symbolicValue("null");
+    assertThat(value.isAlwaysNullOrUndefined()).isTrue();
+    assertThat(value.truthiness()).isEqualTo(Truthiness.FALSY);
   }
 
   @Test
   public void undefined_value() throws Exception {
-    assertThat(symbolicValue("undefined").isAlwaysNullOrUndefined()).isTrue();
+    SymbolicValue value = symbolicValue("undefined");
+    assertThat(value.isAlwaysNullOrUndefined()).isTrue();
+    assertThat(value.truthiness()).isEqualTo(Truthiness.FALSY);
   }
 
   @Test
@@ -52,7 +57,9 @@ public class SymbolicValueTest {
 
   @Test
   public void identifier() throws Exception {
-    assertThat(symbolicValue("x").isAlwaysNullOrUndefined()).isFalse();
+    SymbolicValue value = symbolicValue("x");
+    assertThat(value.isAlwaysNullOrUndefined()).isFalse();
+    assertThat(value.truthiness()).isEqualTo(Truthiness.UNKNOWN);
   }
 
   private SymbolicValue symbolicValue(String expressionSource) {

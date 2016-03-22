@@ -19,11 +19,14 @@
  */
 package org.sonar.javascript.se;
 
+import java.util.Map.Entry;
+
+import org.sonar.javascript.cfg.ControlFlowBlock;
+import org.sonar.javascript.se.SymbolicValue.Truthiness;
+import org.sonar.plugins.javascript.api.symbols.Symbol;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
-import java.util.Map.Entry;
-import org.sonar.javascript.cfg.ControlFlowBlock;
-import org.sonar.plugins.javascript.api.symbols.Symbol;
 
 public class ProgramState {
 
@@ -66,6 +69,14 @@ public class ProgramState {
 
   public int countVisits(ControlFlowBlock block) {
     return visitedBlocks.count(block);
+  }
+
+  public ProgramState constrain(Symbol symbol, Truthiness truthiness) {
+    SymbolicValue value = get(symbol);
+    if (value == null) {
+      return this;
+    }
+    return copyAndAddValue(symbol, value.constrain(truthiness));
   }
 
 }

@@ -25,15 +25,17 @@ import org.sonar.plugins.javascript.api.tree.expression.IdentifierTree;
 
 public class SymbolicValue {
 
-  public static final SymbolicValue NULL_OR_UNDEFINED = new SymbolicValue(true);
-  private static final SymbolicValue OTHER = new SymbolicValue(false);
+  public enum Truthiness { TRUTHY, FALSY, UNKNOWN }
 
-  public static final SymbolicValue UNKNOWN = OTHER;
+  public static final SymbolicValue NULL_OR_UNDEFINED = new SymbolicValue(true, Truthiness.FALSY);
+  public static final SymbolicValue UNKNOWN = new SymbolicValue(false, Truthiness.UNKNOWN);
 
-  private boolean alwaysNullOrUndefined;
+  private final boolean alwaysNullOrUndefined;
+  private final Truthiness truthiness;
 
-  private SymbolicValue(boolean alwaysNullOrUndefined) {
+  private SymbolicValue(boolean alwaysNullOrUndefined, Truthiness truthiness) {
     this.alwaysNullOrUndefined = alwaysNullOrUndefined;
+    this.truthiness = truthiness;
   }
 
   public static SymbolicValue get(ExpressionTree expression) {
@@ -44,11 +46,19 @@ public class SymbolicValue {
         return NULL_OR_UNDEFINED;
       }
     }
-    return expression.is(Kind.NULL_LITERAL) ? NULL_OR_UNDEFINED : OTHER;
+    return expression.is(Kind.NULL_LITERAL) ? NULL_OR_UNDEFINED : UNKNOWN;
   }
 
   public boolean isAlwaysNullOrUndefined() {
     return alwaysNullOrUndefined;
+  }
+
+  public Truthiness truthiness() {
+    return truthiness;
+  }
+
+  public SymbolicValue constrain(Truthiness truthiness) {
+    return new SymbolicValue(alwaysNullOrUndefined, truthiness);
   }
 
 }
