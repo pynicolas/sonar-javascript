@@ -20,21 +20,25 @@
 package org.sonar.javascript.se;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import java.util.Map.Entry;
+import org.sonar.javascript.cfg.ControlFlowBlock;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 
 public class ProgramState {
 
   private final ImmutableMap<Symbol, SymbolicValue> valuesBySymbol;
+  private final ImmutableMultiset<ControlFlowBlock> visitedBlocks;
 
-  private static final ProgramState EMPTY = new ProgramState(ImmutableMap.<Symbol, SymbolicValue>of());
+  private static final ProgramState EMPTY = new ProgramState(ImmutableMap.<Symbol, SymbolicValue>of(), ImmutableMultiset.<ControlFlowBlock>of());
 
   public static ProgramState emptyState() {
     return EMPTY;
   }
 
-  private ProgramState(ImmutableMap<Symbol, SymbolicValue> valuesBySymbol) {
+  private ProgramState(ImmutableMap<Symbol, SymbolicValue> valuesBySymbol, ImmutableMultiset<ControlFlowBlock> visitedBlocks) {
     this.valuesBySymbol = valuesBySymbol;
+    this.visitedBlocks = visitedBlocks;
   }
 
   public ProgramState copyAndAddValue(Symbol symbol, SymbolicValue value) {
@@ -45,11 +49,23 @@ public class ProgramState {
       }
     }
     builder.put(symbol, value);
-    return new ProgramState(builder.build());
+    return new ProgramState(builder.build(), visitedBlocks);
   }
 
   public SymbolicValue get(Symbol symbol) {
     return valuesBySymbol.get(symbol);
+  }
+
+  public ProgramState copyAndAddVisitedBlock(ControlFlowBlock block) {
+    ImmutableMultiset<ControlFlowBlock> newVisitedBlocks = ImmutableMultiset.<ControlFlowBlock>builder()
+      .addAll(visitedBlocks)
+      .add(block)
+      .build();
+    return new ProgramState(valuesBySymbol, newVisitedBlocks);
+  }
+
+  public int countVisits(ControlFlowBlock block) {
+    return visitedBlocks.count(block);
   }
 
 }

@@ -74,6 +74,7 @@ function basic_if() {
   var a;
   if (condition) {
     a = 1;
+    return;
   }
   a.x; // Noncompliant
 }
@@ -102,4 +103,46 @@ function catch_exception() {
   } catch (e) {
     bar(e.message);
   }
+}
+
+function protected_call() {
+  var a;
+  while (condition()) {
+    if (!a) {
+      a = 1;
+    } else {
+      a.x; // FP
+    }
+    doSomething();
+  }
+}
+
+function big_number_of_paths() {
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
+  foo(a && b);
 }

@@ -19,11 +19,15 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Multiset;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import org.sonar.api.server.rule.RulesDefinition.SubCharacteristics;
@@ -94,13 +98,26 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
     private final ControlFlowNode cfgStartNode;
     private final Set<Symbol> trackedVariables;
     private final Set<Symbol> functionParameters;
-    private final SetMultimap<ControlFlowBlock, ControlFlowBlock> visitedEdges = HashMultimap.create();
+    private final Multiset<ControlFlowBlock> visitedBlocks = HashMultiset.create();
+    private final Multiset<Tree> typeErrors = HashMultiset.create();
+    private final Map<Tree, ControlFlowBlock> blockByTree = new HashMap<>();
+    private final Deque<BlockExecution> workList = new ArrayDeque<>();
 
     public SymbolicExecution(Scope functionScope, ControlFlowGraph cfg) {
       cfgStartNode = cfg.start();
       LocalVariables localVariables = new LocalVariables(functionScope, cfg);
       this.trackedVariables = localVariables.trackableVariables();
       this.functionParameters = localVariables.functionParameters();
+    }
+
+    private class BlockExecution {
+      private final ControlFlowBlock block;
+      private final ProgramState state;
+
+      public BlockExecution(ControlFlowBlock block, ProgramState state) {
+        this.block = block;
+        this.state = state;
+      }
     }
 
     public void visitCfg() {
@@ -114,12 +131,31 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
         for (Symbol functionParameter : functionParameters) {
           initialState = initialState.copyAndAddValue(functionParameter, SymbolicValue.UNKNOWN);
         }
-        visitBlock((ControlFlowBlock) cfgStartNode, initialState);
+        workList.addLast(new BlockExecution((ControlFlowBlock) cfgStartNode, initialState));
+      }
+
+      for (int i = 0; i < 1000 && !workList.isEmpty(); i++) {
+        execute(workList.removeFirst());
+      }
+      
+      reportIssues();
+    }
+
+    private void reportIssues() {
+      for (Tree tree : typeErrors.elementSet()) {
+        ControlFlowBlock block = blockByTree.get(tree);
+        if (typeErrors.count(tree) == visitedBlocks.count(block)) {
+          addIssue(tree, String.format("\"%s\" is null or undefined", tree.toString()));
+        }
       }
     }
 
-    private void visitBlock(ControlFlowBlock block, ProgramState incomingState) {
-      ProgramState currentState = incomingState;
+    private void execute(BlockExecution blockExecution) {
+      ControlFlowBlock block = blockExecution.block;
+      ProgramState currentState = blockExecution.state;
+      if (currentState.countVisits(block) > 1) {
+        return;
+      }
 
       for (Tree element : block.elements()) {
         if (element.is(Kind.ASSIGNMENT)) {
@@ -131,11 +167,20 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
           currentState = store(currentState, initialized.left(), initialized.right());
 
         } else if (element.is(Kind.DOT_MEMBER_EXPRESSION, Kind.BRACKET_MEMBER_EXPRESSION)) {
-          visitMemberExpression(currentState, (MemberExpressionTree) element);
+          visitMemberExpression(currentState, (MemberExpressionTree) element, block);
         }
       }
 
-      Tree branchingTree = block.branchingTree();
+      currentState = visitBranchingTree(block.branchingTree(), currentState);
+
+      for (ControlFlowBlock successor : Iterables.filter(block.successors(), ControlFlowBlock.class)) {
+        workList.addLast(new BlockExecution(successor, currentState.copyAndAddVisitedBlock(block)));
+      }
+      visitedBlocks.add(block);
+    }
+
+    private ProgramState visitBranchingTree(Tree branchingTree, ProgramState incomingState) {
+      ProgramState currentState = incomingState;
       if (branchingTree != null) {
         if (branchingTree.is(Kind.FOR_IN_STATEMENT, Kind.FOR_OF_STATEMENT)) {
           ForObjectStatementTree forTree = (ForObjectStatementTree) branchingTree;
@@ -150,13 +195,7 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
           currentState = currentState.copyAndAddValue(trackedVariable(catchBlock.parameter()), SymbolicValue.UNKNOWN);
         }
       }
-
-      for (ControlFlowBlock successor : Iterables.filter(block.successors(), ControlFlowBlock.class)) {
-        if (!visitedEdges.containsEntry(block, successor)) {
-          visitedEdges.put(block, successor);
-          visitBlock(successor, currentState);
-        }
-      }
+      return currentState;
     }
 
     private ProgramState store(ProgramState currentState, Tree left, ExpressionTree right) {
@@ -168,12 +207,14 @@ public class TypeErrorOnNullOrUndefinedCheck extends SubscriptionVisitorCheck {
       return currentState;
     }
 
-    private void visitMemberExpression(ProgramState currentState, MemberExpressionTree memberExpression) {
-      Symbol trackedVariable = trackedVariable(memberExpression.object());
+    private void visitMemberExpression(ProgramState currentState, MemberExpressionTree memberExpression, ControlFlowBlock block) {
+      ExpressionTree object = memberExpression.object();
+      Symbol trackedVariable = trackedVariable(object);
       if (trackedVariable != null) {
         SymbolicValue value = currentState.get(trackedVariable);
         if (value == null || value.isAlwaysNullOrUndefined()) {
-          addIssue(memberExpression.object(), String.format("\"%s\" is null or undefined", trackedVariable.name()));
+          blockByTree.put(object, block);
+          typeErrors.add(object);
         }
       }
     }
