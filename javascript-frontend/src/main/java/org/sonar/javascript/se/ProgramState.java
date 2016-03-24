@@ -78,4 +78,29 @@ public class ProgramState {
     return copyAndAddValue(symbol, value.constrain(truthiness));
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((valuesBySymbol == null) ? 0 : valuesBySymbol.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    ProgramState other = (ProgramState) obj;
+    if (valuesBySymbol == null) {
+      if (other.valuesBySymbol != null)
+        return false;
+    } else if (!valuesBySymbol.equals(other.valuesBySymbol))
+      return false;
+    return true;
+  }
+
 }

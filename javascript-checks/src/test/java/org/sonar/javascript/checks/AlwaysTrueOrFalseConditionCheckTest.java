@@ -20,8 +20,11 @@
 package org.sonar.javascript.checks;
 
 import java.io.File;
+
 import org.junit.Test;
 import org.sonar.javascript.checks.verifier.JavaScriptCheckVerifier;
+import org.sonar.javascript.checks.verifier.TestUtils;
+import org.sonar.javascript.visitors.JavaScriptVisitorContext;
 
 public class AlwaysTrueOrFalseConditionCheckTest {
 
@@ -30,5 +33,15 @@ public class AlwaysTrueOrFalseConditionCheckTest {
     JavaScriptCheckVerifier.verify(
       new AlwaysTrueOrFalseConditionCheck(),
       new File("src/test/resources/checks/AlwaysTrueOrFalseCondition.js"));
+  }
+
+  @Test
+  public void testName() throws Exception {
+    AlwaysTrueOrFalseConditionCheck check = new AlwaysTrueOrFalseConditionCheck();
+    File file = new File("C:/Users/py/workspace-sonarsource/test-js/src/tinymce.js");
+    for (int i = 0; i < 10; i++) {
+      JavaScriptVisitorContext context = TestUtils.createContext(file);
+      check.scanFile(context);
+    }
   }
 }

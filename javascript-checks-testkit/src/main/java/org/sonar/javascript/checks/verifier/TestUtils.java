@@ -19,19 +19,21 @@
  */
 package org.sonar.javascript.checks.verifier;
 
-import com.google.common.base.Charsets;
-import com.sonar.sslr.api.typed.ActionParser;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.sonar.api.config.Settings;
-import org.sonar.javascript.visitors.JavaScriptVisitorContext;
 import org.sonar.javascript.parser.JavaScriptParserBuilder;
 import org.sonar.javascript.tree.symbols.type.JQuery;
+import org.sonar.javascript.visitors.JavaScriptVisitorContext;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
 import org.sonar.plugins.javascript.api.tree.Tree;
 
-class TestUtils {
+import com.google.common.base.Charsets;
+import com.sonar.sslr.api.typed.ActionParser;
+
+public class TestUtils {
 
   private TestUtils() {
   }

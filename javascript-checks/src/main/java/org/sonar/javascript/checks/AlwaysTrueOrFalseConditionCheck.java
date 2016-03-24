@@ -19,17 +19,16 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
+
 import org.sonar.api.server.rule.RulesDefinition.SubCharacteristics;
 import org.sonar.check.Priority;
 import org.sonar.check.Rule;
@@ -58,6 +57,11 @@ import org.sonar.squidbridge.annotations.ActivatedByDefault;
 import org.sonar.squidbridge.annotations.SqaleConstantRemediation;
 import org.sonar.squidbridge.annotations.SqaleSubCharacteristic;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.SetMultimap;
+
 @Rule(
   key = "S2583",
   name = "Conditions should not unconditionally evaluate to \"true\" or to \"false\"",
@@ -67,6 +71,9 @@ import org.sonar.squidbridge.annotations.SqaleSubCharacteristic;
 @SqaleConstantRemediation("15min")
 @ActivatedByDefault
 public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
+
+  private long startTime;
+  private int nbIssues;
 
   @Override
   public List<Kind> nodesToVisit() {
@@ -78,6 +85,18 @@ public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
       Kind.METHOD,
       Kind.GENERATOR_METHOD,
       Kind.ARROW_FUNCTION);
+  }
+
+  @Override
+  public void visitFile(Tree scriptTree) {
+    startTime = System.currentTimeMillis();
+    nbIssues = 0;
+  }
+
+  @Override
+  public void leaveFile(Tree scriptTree) {
+    long time = System.currentTimeMillis() - startTime;
+    System.out.println(String.format("Found %s issues in %s ms", nbIssues, time));
   }
 
   @Override
@@ -100,6 +119,7 @@ public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
     private final Set<Symbol> functionParameters;
     private final Deque<BlockExecution> workList = new ArrayDeque<>();
     private final SetMultimap<Tree, Truthiness> conditionResults = HashMultimap.create();
+    private final Set<BlockExecution> computed = new HashSet<>();
 
     public SymbolicExecution(Scope functionScope, ControlFlowGraph cfg) {
       cfgStartNode = cfg.start();
@@ -115,6 +135,44 @@ public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
       public BlockExecution(ControlFlowBlock block, ProgramState state) {
         this.block = block;
         this.state = state;
+      }
+
+      @Override
+      public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + getOuterType().hashCode();
+        result = prime * result + ((block == null) ? 0 : block.hashCode());
+        result = prime * result + ((state == null) ? 0 : state.hashCode());
+        return result;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj)
+          return true;
+        if (obj == null)
+          return false;
+        if (getClass() != obj.getClass())
+          return false;
+        BlockExecution other = (BlockExecution) obj;
+        if (!getOuterType().equals(other.getOuterType()))
+          return false;
+        if (block == null) {
+          if (other.block != null)
+            return false;
+        } else if (!block.equals(other.block))
+          return false;
+        if (state == null) {
+          if (other.state != null)
+            return false;
+        } else if (!state.equals(other.state))
+          return false;
+        return true;
+      }
+
+      private SymbolicExecution getOuterType() {
+        return SymbolicExecution.this;
       }
     }
 
@@ -132,13 +190,16 @@ public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
         workList.addLast(new BlockExecution((ControlFlowBlock) cfgStartNode, initialState));
       }
 
-      for (int i = 0; i < 10000 && !workList.isEmpty(); i++) {
+      for (int i = 0; i < 1000 && !workList.isEmpty(); i++) {
         BlockExecution blockExecution = workList.removeFirst();
-        Tree branchingTree = blockExecution.block.branchingTree();
-        if (branchingTree != null && branchingTree.is(Kind.TRY_STATEMENT)) {
-          return;
+        if (!computed.contains(blockExecution)) {
+          Tree branchingTree = blockExecution.block.branchingTree();
+          if (branchingTree != null && branchingTree.is(Kind.TRY_STATEMENT)) {
+            return;
+          }
+          execute(blockExecution);
+          computed.add(blockExecution);
         }
-        execute(blockExecution);
       }
 
       if (workList.isEmpty()) {
@@ -152,6 +213,7 @@ public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
         if (results.size() == 1 && !Truthiness.UNKNOWN.equals(results.iterator().next())) {
           String result = Truthiness.TRUTHY.equals(results.iterator().next()) ? "true" : "false";
           addIssue(entry.getKey(), String.format("Change this condition so that it does not always evaluate to \"%s\".", result));
+          nbIssues++;
         }
       }
 
