@@ -20,9 +20,10 @@
 package org.sonar.javascript.se;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
-import org.sonar.javascript.se.SymbolicValue.Truthiness;
+import org.sonar.javascript.cfg.ControlFlowBlock;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 import org.sonar.plugins.javascript.api.symbols.Symbol.Kind;
 
@@ -33,10 +34,34 @@ public class ProgramStateTest {
   private ProgramState state = ProgramState.emptyState();
 
   @Test
+  public void addValue() throws Exception {
+    SymbolicValue value1 = mock(SymbolicValue.class);
+    SymbolicValue value2 = mock(SymbolicValue.class);
+    SymbolicValue value3 = mock(SymbolicValue.class);
+    ProgramState state1 = state.copyAndAddValue(symbol1, value1);
+    ProgramState state2 = state1
+      .copyAndAddValue(symbol1, value2)
+      .copyAndAddValue(symbol2, value3);
+
+    assertThat(state.get(symbol1)).isNull();
+    assertThat(state1.get(symbol1)).isEqualTo(value1);
+    assertThat(state2.get(symbol1)).isEqualTo(value2);
+    assertThat(state2.get(symbol2)).isEqualTo(value3);
+  }
+
+  @Test
   public void constrain() throws Exception {
     state = state.copyAndAddValue(symbol1, SymbolicValue.UNKNOWN);
     assertThat(state.constrain(symbol1, Truthiness.FALSY).get(symbol1).truthiness()).isEqualTo(Truthiness.FALSY);
     assertThat(state.constrain(symbol2, Truthiness.FALSY).get(symbol2)).isNull();
+  }
+
+  @Test
+  public void visitedBlocks() throws Exception {
+    ControlFlowBlock block1 = mock(ControlFlowBlock.class);
+    ProgramState state1 = state.copyAndAddVisitedBlock(block1);
+    assertThat(state.countVisits(block1)).isEqualTo(0);
+    assertThat(state1.countVisits(block1)).isEqualTo(1);
   }
 
 }

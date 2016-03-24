@@ -39,7 +39,7 @@ import org.sonar.javascript.cfg.ControlFlowNode;
 import org.sonar.javascript.checks.se.LocalVariables;
 import org.sonar.javascript.se.ProgramState;
 import org.sonar.javascript.se.SymbolicValue;
-import org.sonar.javascript.se.SymbolicValue.Truthiness;
+import org.sonar.javascript.se.Truthiness;
 import org.sonar.javascript.tree.symbols.Scope;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 import org.sonar.plugins.javascript.api.tree.Tree;
@@ -230,17 +230,17 @@ public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
       if (isUnaryNot) {
         UnaryExpressionTree unary = (UnaryExpressionTree) lastElement;
         trackedVariable = trackedVariable(unary.expression());
-        trueSuccessorTruthiness = SymbolicValue.Truthiness.FALSY;
-        falseSuccessorTruthiness = SymbolicValue.Truthiness.TRUTHY;
+        trueSuccessorTruthiness = Truthiness.FALSY;
+        falseSuccessorTruthiness = Truthiness.TRUTHY;
       } else {
         trackedVariable = trackedVariable(lastElement);
-        trueSuccessorTruthiness = SymbolicValue.Truthiness.TRUTHY;
-        falseSuccessorTruthiness = SymbolicValue.Truthiness.FALSY;
+        trueSuccessorTruthiness = Truthiness.TRUTHY;
+        falseSuccessorTruthiness = Truthiness.FALSY;
       }
 
       if (trackedVariable != null) {
         SymbolicValue curentValue = currentState.get(trackedVariable);
-        Truthiness currentTruthiness = curentValue == null ? SymbolicValue.Truthiness.FALSY : curentValue.truthiness();
+        Truthiness currentTruthiness = curentValue == null ? Truthiness.FALSY : curentValue.truthiness();
         Truthiness conditionTruthiness = isUnaryNot ? currentTruthiness.not() : currentTruthiness;
         conditionResults.put(lastElement, conditionTruthiness);
         if (currentTruthiness != falseSuccessorTruthiness) {

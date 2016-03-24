@@ -22,7 +22,6 @@ package org.sonar.javascript.se;
 import java.util.Map.Entry;
 
 import org.sonar.javascript.cfg.ControlFlowBlock;
-import org.sonar.javascript.se.SymbolicValue.Truthiness;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 
 import com.google.common.collect.ImmutableMap;

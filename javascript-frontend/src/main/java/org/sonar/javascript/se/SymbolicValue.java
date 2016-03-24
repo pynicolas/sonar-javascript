@@ -25,20 +25,6 @@ import org.sonar.plugins.javascript.api.tree.expression.IdentifierTree;
 
 public class SymbolicValue {
 
-  public enum Truthiness {
-    TRUTHY, FALSY, UNKNOWN;
-
-    public Truthiness not() {
-      if (this == TRUTHY) {
-        return FALSY;
-      } else if (this == FALSY) {
-        return TRUTHY;
-      } else {
-        return UNKNOWN;
-      }
-    }
-  }
-
   public static final SymbolicValue NULL_OR_UNDEFINED = new SymbolicValue(true, Truthiness.FALSY);
   public static final SymbolicValue UNKNOWN = new SymbolicValue(false, Truthiness.UNKNOWN);
 

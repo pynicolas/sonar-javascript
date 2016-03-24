@@ -23,7 +23,6 @@ import com.google.common.base.Charsets;
 import com.sonar.sslr.api.typed.ActionParser;
 import org.junit.Test;
 import org.sonar.javascript.parser.JavaScriptParserBuilder;
-import org.sonar.javascript.se.SymbolicValue.Truthiness;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
 import org.sonar.plugins.javascript.api.tree.Tree;
 import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
