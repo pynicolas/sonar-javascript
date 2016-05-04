@@ -19,9 +19,8 @@
  */
 package org.sonar.javascript.checks;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.sonar.api.server.rule.RulesDefinition.SubCharacteristics;
 import org.sonar.check.Priority;
@@ -51,8 +50,7 @@ public class NullDereferenceCheck extends SeCheck {
 
   private static final String MESSAGE = "\"%s\" is null or undefined.";
 
-  // map of tree elements (element of block of cfg) ans boolean value: true if this element always raises NPE
-  private Map<Tree, Boolean> nullDereference = new HashMap<>();
+  private Set<Tree> hasIssue = new HashSet<>();
 
   @Override
   public void beforeBlockElement(ProgramState currentState, Tree element) {
@@ -62,15 +60,17 @@ public class NullDereferenceCheck extends SeCheck {
     if (symbol != null) {
       SymbolicValue symbolicValue = currentState.get(symbol);
 
-      if (symbolicValue != null) {
-        if (symbolicValue.isDefinitelyNullOrUndefined() && nullDereference.get(element) != null && !nullDereference.get(element)) {
-          nullDereference.put(element, false);
-        } else {
-          nullDereference.put(element, symbolicValue.isDefinitelyNullOrUndefined());
-        }
+      if (symbolicValue != null && symbolicValue.isDefinitelyNullOrUndefined() && !hasIssue.contains(object)) {
+        addIssue(object, String.format(MESSAGE, symbol.name()));
+        hasIssue.add(object);
       }
     }
 
+  }
+
+  @Override
+  public void leaveFile(Tree scriptTree) {
+    hasIssue = new HashSet<>();
   }
 
   private Symbol getSymbol(@Nullable  ExpressionTree object) {
@@ -87,22 +87,5 @@ public class NullDereferenceCheck extends SeCheck {
     }
     return null;
   }
-
-  @Override
-  public void startOfExecution() {
-    nullDereference = new HashMap<>();
-  }
-
-  @Override
-  public void endOfExecution() {
-    for (Entry<Tree, Boolean> entry : nullDereference.entrySet()) {
-      if (entry.getValue()) {
-        ExpressionTree object = getObject(entry.getKey());
-        addIssue(object, String.format(MESSAGE, getSymbol(object).name()));
-      }
-    }
-
-  }
-
 
 }

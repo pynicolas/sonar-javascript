@@ -13,5 +13,5 @@ function main() {
   if (cond) {
     z = foo();
   }
-  z.foo();   // Compliant
+  z.foo();   // Noncompliant
 }
