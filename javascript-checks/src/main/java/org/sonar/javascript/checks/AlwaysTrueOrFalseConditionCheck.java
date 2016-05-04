@@ -19,19 +19,15 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.sonar.api.server.rule.RulesDefinition.SubCharacteristics;
 import org.sonar.check.Priority;
 import org.sonar.check.Rule;
-import org.sonar.javascript.cfg.ControlFlowGraph;
-import org.sonar.javascript.se.SymbolicExecution;
-import org.sonar.javascript.tree.symbols.Scope;
+import org.sonar.javascript.se.SeCheck;
+import org.sonar.javascript.se.Truthiness;
 import org.sonar.plugins.javascript.api.tree.Tree;
-import org.sonar.plugins.javascript.api.tree.Tree.Kind;
-import org.sonar.plugins.javascript.api.tree.declaration.FunctionTree;
-import org.sonar.plugins.javascript.api.tree.statement.BlockTree;
-import org.sonar.plugins.javascript.api.visitors.SubscriptionVisitorCheck;
 import org.sonar.squidbridge.annotations.ActivatedByDefault;
 import org.sonar.squidbridge.annotations.SqaleConstantRemediation;
 import org.sonar.squidbridge.annotations.SqaleSubCharacteristic;
@@ -44,31 +40,17 @@ import org.sonar.squidbridge.annotations.SqaleSubCharacteristic;
 @SqaleSubCharacteristic(SubCharacteristics.LOGIC_RELIABILITY)
 @SqaleConstantRemediation("15min")
 @ActivatedByDefault
-public class AlwaysTrueOrFalseConditionCheck extends SubscriptionVisitorCheck {
+public class AlwaysTrueOrFalseConditionCheck extends SeCheck {
 
   @Override
-  public List<Kind> nodesToVisit() {
-    return ImmutableList.of(
-      Kind.FUNCTION_DECLARATION,
-      Kind.GENERATOR_DECLARATION,
-      Kind.FUNCTION_EXPRESSION,
-      Kind.GENERATOR_FUNCTION_EXPRESSION,
-      Kind.METHOD,
-      Kind.GENERATOR_METHOD,
-      Kind.ARROW_FUNCTION);
-  }
-
-  @Override
-  public void visitNode(Tree tree) {
-    FunctionTree functionTree = (FunctionTree) tree;
-    if (functionTree.body().is(Kind.BLOCK)) {
-      checkCFG(ControlFlowGraph.build((BlockTree) functionTree.body()), functionTree);
+  public void checkConditions(Map<Tree, Collection<Truthiness>> conditions) {
+    for (Entry<Tree, Collection<Truthiness>> entry : conditions.entrySet()) {
+      Collection<Truthiness> results = entry.getValue();
+      if (results.size() == 1 && !Truthiness.UNKNOWN.equals(results.iterator().next())) {
+        String result = Truthiness.TRUTHY.equals(results.iterator().next()) ? "true" : "false";
+        addIssue(entry.getKey(), String.format("Change this condition so that it does not always evaluate to \"%s\".", result));
+      }
     }
-  }
-
-  private void checkCFG(ControlFlowGraph cfg, FunctionTree functionTree) {
-    Scope functionScope = getContext().getSymbolModel().getScope(functionTree);
-    new SymbolicExecution(functionScope, cfg, this).visitCfg();
   }
 
 }

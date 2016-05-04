@@ -22,10 +22,9 @@ package org.sonar.javascript.se;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Map.Entry;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import org.sonar.javascript.cfg.CfgBlock;
@@ -33,7 +32,6 @@ import org.sonar.javascript.cfg.CfgBranchingBlock;
 import org.sonar.javascript.cfg.ControlFlowGraph;
 import org.sonar.javascript.tree.TreeKinds;
 import org.sonar.javascript.tree.symbols.Scope;
-import org.sonar.plugins.javascript.api.JavaScriptCheck;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 import org.sonar.plugins.javascript.api.tree.Tree;
 import org.sonar.plugins.javascript.api.tree.Tree.Kind;
@@ -57,15 +55,15 @@ public class SymbolicExecution {
   private final Deque<BlockExecution> workList = new ArrayDeque<>();
   private final SetMultimap<Tree, Truthiness> conditionResults = HashMultimap.create();
   private final Set<BlockExecution> alreadyProcessed = new HashSet<>();
-  private final JavaScriptCheck check;
+  private final List<SeCheck> checks;
 
-  public SymbolicExecution(Scope functionScope, ControlFlowGraph cfg, JavaScriptCheck check) {
+  public SymbolicExecution(Scope functionScope, ControlFlowGraph cfg, List<SeCheck> checks) {
     cfgStartBlock = cfg.start();
     LocalVariables localVariables = new LocalVariables(functionScope, cfg);
     this.trackedVariables = localVariables.trackableVariables();
     this.functionParameters = localVariables.functionParameters();
     this.functionScope = functionScope;
-    this.check = check;
+    this.checks = checks;
   }
 
   public void visitCfg() {
@@ -83,7 +81,9 @@ public class SymbolicExecution {
     }
 
     if (workList.isEmpty()) {
-      reportIssues();
+      for (SeCheck check : checks) {
+        check.checkConditions(conditionResults.asMap());
+      }
     }
   }
 
@@ -107,17 +107,6 @@ public class SymbolicExecution {
     initialState = initialState.constrain(arguments, Truthiness.TRUTHY);
 
     return initialState;
-  }
-
-  private void reportIssues() {
-    for (Entry<Tree, Collection<Truthiness>> entry : conditionResults.asMap().entrySet()) {
-      Collection<Truthiness> results = entry.getValue();
-      if (results.size() == 1 && !Truthiness.UNKNOWN.equals(results.iterator().next())) {
-        String result = Truthiness.TRUTHY.equals(results.iterator().next()) ? "true" : "false";
-        check.addIssue(entry.getKey(), String.format("Change this condition so that it does not always evaluate to \"%s\".", result));
-      }
-    }
-
   }
 
   private void execute(BlockExecution blockExecution) {
