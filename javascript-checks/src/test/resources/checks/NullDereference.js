@@ -125,7 +125,7 @@ function one_condition() {
   }
 
   if (x
-      && x.foo != null) {  // Noncompliant, FP
+      && x.foo != null) {  // Ok
   }
 }
 
@@ -138,7 +138,7 @@ function one_more() {
     return;
   }
 
-  if (x.foo) {  // Noncompliant, FP
+  if (x.foo) {  // Ok
   }
 }
 

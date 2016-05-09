@@ -123,7 +123,11 @@ public class SymbolicValue {
   }
 
   public SymbolicValue constrain(Truthiness truthiness) {
-    return new SymbolicValue(definitelyNullOrUndefined, truthiness);
+    boolean newDefinitelyNullOrUndefined = definitelyNullOrUndefined;
+    if (truthiness.equals(Truthiness.TRUTHY)) {
+      newDefinitelyNullOrUndefined = false;
+    }
+    return new SymbolicValue(newDefinitelyNullOrUndefined, truthiness);
   }
 
   public SymbolicValue constrain(boolean definitelyNullOrUndefined) {
