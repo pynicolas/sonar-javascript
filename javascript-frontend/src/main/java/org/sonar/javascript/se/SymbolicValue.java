@@ -127,7 +127,11 @@ public class SymbolicValue {
   }
 
   public SymbolicValue constrain(Nullability nullability) {
-    return new SymbolicValue(nullability, truthiness);
+    Truthiness newTruthiness = truthiness;
+    if (nullability.equals(Nullability.NULL)) {
+      newTruthiness = Truthiness.FALSY;
+    }
+    return new SymbolicValue(nullability, newTruthiness);
   }
 
   @Override
