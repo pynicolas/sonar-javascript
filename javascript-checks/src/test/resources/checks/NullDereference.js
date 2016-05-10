@@ -51,17 +51,25 @@ function FP_equal_null() {
     x.foo();    // Noncompliant
   }
 
+  if (x == undefined) {
+    x.foo();     // FN, Noncompliant
+  }
+
 }
 
 function strict_equal_null() {
   var x = foo();
 
   if (x === null) {
-//    x.foo();    // Noncompliant
+    x.foo();    // FN, Noncompliant
+  } else {
+    x.foo();
   }
 
   if (x !== null) {
-  //  x.foo();     // ??? x might me undefined here and thus raise as NPE
+    x.foo();
+  } else {
+    x.foo();    // FN, Noncompliant
   }
 }
 
@@ -157,4 +165,29 @@ function not_null_if_property_accessed() {
     }
     x.foo();   // Ok
   }
+}
+
+function inline_assignment() {
+  var x;
+
+  while(condition) {
+    (x)|| (x = []);
+    x.foo();   // Noncompliant, FP
+  }
+}
+
+function tested_copy() {
+  var x;
+
+  if (condition) {
+    x = foo();
+  }
+
+  var copy = x;
+
+  if (!copy) {
+    return;
+  }
+
+  x.foo(); // Noncompliant, FP
 }
