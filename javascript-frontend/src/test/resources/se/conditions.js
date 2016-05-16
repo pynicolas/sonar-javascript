@@ -3,12 +3,12 @@ function main() {
   if (!x) {
     x = 42;
   }
-  bar(); // x=TRUTHY
+  bar(); // PS x=TRUTHY
 
   x = foo2();
   if (!(x)) {
     x = 42;
   }
-  bar(); // x=TRUTHY
+  bar(); // PS x=TRUTHY
   dummyStatement();
 }
