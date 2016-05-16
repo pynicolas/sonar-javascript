@@ -89,6 +89,11 @@ public class SymbolicExecutionTest {
     runSe("conditions.js");
   }
 
+  @Test
+  public void ternary() throws Exception {
+    runSe("ternary.js");
+  }
+
   private void runSe(String filename) {
     JavaScriptVisitorContext context = createContext(new File("src/test/resources/se/", filename));
     check.scanExpectedIssues(context);

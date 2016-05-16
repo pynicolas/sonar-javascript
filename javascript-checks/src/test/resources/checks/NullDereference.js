@@ -219,10 +219,10 @@ function logical_expression_ternary() {
     ? 1
     : x.foo;  // Noncompliant, FP
 
-  if (x == null || y == null) {
+  if ((x == null || y == null)) {
     return 1;
   } else {
-    return x.foo;
+    return x.foo;  // Noncompliant, FP
   }
 }
 
