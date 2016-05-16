@@ -23,20 +23,20 @@ function branch() {
   z.foo();   // Noncompliant
 }
 
-function FP_class_property() {
+function class_property() {
   class A {
   }
   A.foo = 42;
 }
 
-function FP_var_and_function() {
+function var_and_function() {
   x.bar = 24;
   var x;
   function x() {}
   x.foo = 42;
 }
 
-function FP_equal_null() {
+function equal_null() {
   var x = foo();
 
   if (x != null) {
@@ -73,7 +73,7 @@ function strict_equal_null() {
   }
 }
 
-function FP_ternary() {
+function ternary() {
   var x;
   if (condition) {
     x = foo();
@@ -107,7 +107,7 @@ function loop_at_least_once() {
     x = foo();
   }
 
-  x.foo();  // Noncompliant, FP! we should execute loop at least once
+  x.foo();  // Noncompliant, FP? we should execute loop at least once?
 }
 
 function loop_with_condition() {
@@ -181,4 +181,58 @@ function tested_copy() {
   }
 
   x.foo(); // Noncompliant, FP
+}
+
+function typeof_testing() {
+  var x;
+
+  if (condition) {
+    x = foo();
+  }
+
+  if (typeof x === 'function') {
+    x.call();   // Noncompliant, FP
+  }
+
+  if (typeof x === 'object') {
+    x.call();   // Noncompliant, true issue, x might be null
+  }
+
+  var y = foo();
+
+  if (typeof y === 'undefined') {
+    y.call();  // FN, Noncompliant
+  }
+
+}
+
+function assignment_left_first() {
+  var x;
+
+  foo[x=foo()] = foo(x.bar);  // Noncompliant, FP, we first evaluate LHS of assignment
+}
+
+function logical_expression_ternary() {
+  var x = foo(), y = bar();
+
+  var z = (x == null || y == null)
+    ? 1
+    : x.foo;  // Noncompliant, FP
+
+  if (x == null || y == null) {
+    return 1;
+  } else {
+    return x.foo;
+  }
+}
+
+function null_and_not_undefined() {
+  var x = null;
+
+  while (condition()) {
+    if (x === null) {
+      x = new Obj();
+    }
+    x.foo();   // Noncompliant, FP
+  }
 }
