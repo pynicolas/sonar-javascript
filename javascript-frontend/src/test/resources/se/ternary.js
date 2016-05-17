@@ -5,7 +5,4 @@ function main() {
   var z = (x == null || y == null)
     ? 1
     : x.foo;  // PS x=NOT_NULL
-
-  dummyStatement();
-
 }

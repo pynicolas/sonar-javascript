@@ -11,6 +11,4 @@ function main(obj, arr) {
   for (element in arr) {
    bar(); // PS element=UNKNOWN
   }
-
-  dummyStatement();
 }

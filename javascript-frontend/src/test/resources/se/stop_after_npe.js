@@ -7,6 +7,4 @@ function main() {
   }
 
   foo(x); // PS x=NOT_NULL
-
-  something();
 }

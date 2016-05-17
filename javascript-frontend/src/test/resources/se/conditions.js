@@ -60,7 +60,6 @@ function main() {
   }
 
   dummyStatement(); // PS x=NULL
-  dummyStatement();
 
   while(true) {
     break;
@@ -79,6 +78,4 @@ function main() {
   }
 
   dummyStatement(); // PS z=TRUTHY
-
-  dummyStatement();
 }

@@ -34,5 +34,4 @@ function main(p) {
       dummyStatement();
   }
 
-  dummyStatement();
 }

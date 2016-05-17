@@ -10,6 +10,4 @@ function main() {
   function nested() {
     untracked = 42;
   }
-
-  endPoint;
 }

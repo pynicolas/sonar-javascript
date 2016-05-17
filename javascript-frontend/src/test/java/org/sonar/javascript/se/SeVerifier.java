@@ -88,7 +88,7 @@ class SeVerifier extends SeCheck {
     for (Entry<Integer, Map<ProgramState, Boolean>> expectedPsEntry : expectedProgramStates.entrySet()) {
       for (Entry<ProgramState, Boolean> programStateBooleanEntry : expectedPsEntry.getValue().entrySet()) {
         assertThat(programStateBooleanEntry.getValue())
-          .overridingErrorMessage("Expected program state on line " + expectedPsEntry.getKey() + " was not asserted.")
+          .overridingErrorMessage("Expected program state on line " + expectedPsEntry.getKey() + " was not asserted.\n" + programState(programStateBooleanEntry.getKey()))
           .isTrue();
       }
     }
@@ -104,7 +104,7 @@ class SeVerifier extends SeCheck {
   }
 
   private String getNotFoundPsMessage(ProgramState actualPs, Integer line) {
-    return "There is an actual program state for which we were able to match with any expected program state (line " + line + ")\n" + "Actual program state:\n" + programState(actualPs);
+    return "There is an actual program state for which we were not able to match with any expected program state (line " + line + ")\n" + "Actual program state:\n" + programState(actualPs);
   }
 
   private String programState(ProgramState ps) {
@@ -162,7 +162,7 @@ class SeVerifier extends SeCheck {
   public void afterBlockElement(ProgramState currentState, Tree element) {
     int line = ((JavaScriptTree) element).getLine();
 
-    if (previousPS != null && line > previousPSLine) {
+    if (previousPS != null && line != previousPSLine) {
       actualProgramStates.put(previousPSLine, previousPS);
     }
 
@@ -172,6 +172,10 @@ class SeVerifier extends SeCheck {
 
   @Override
   public void endOfExecution(Scope functionScope) {
+    if (previousPS != null) {
+      actualProgramStates.put(previousPSLine, previousPS);
+    }
+
     if (insideFunction) {
       this.endOfExecution = true;
     }
