@@ -104,7 +104,7 @@ class SeVerifier extends SeCheck {
   }
 
   private String getNotFoundPsMessage(ProgramState actualPs, Integer line) {
-    return "There is an actual program state for which we didn't match with any expected program state (line " + line + ")\n" + "Actual program state:\n" + programState(actualPs);
+    return "There is an actual program state for which we were able to match with any expected program state (line " + line + ")\n" + "Actual program state:\n" + programState(actualPs);
   }
 
   private String programState(ProgramState ps) {

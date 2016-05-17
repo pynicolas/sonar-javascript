@@ -85,6 +85,16 @@ public class SymbolicExecutionTest {
     runSe("branching.js");
   }
 
+  @Test
+  public void properties() throws Exception {
+    runSe("properties.js");
+  }
+
+  @Test
+  public void loops() throws Exception {
+    runSe("loops.js");
+  }
+
   private void runSe(String filename) {
     JavaScriptVisitorContext context = createContext(new File("src/test/resources/se/", filename));
     verifier.scanExpectedIssues(context);
