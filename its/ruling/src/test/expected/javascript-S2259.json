@@ -7,7 +7,6 @@
 8440,
 8473,
 8484,
-11808,
 ],
 'project:dojo-1.8.1/dojo/i18n.js.uncompressed.js':[
 515,
@@ -16,9 +15,6 @@
 301,
 334,
 345,
-],
-'project:dojo-1.8.1/dojo/text.js.uncompressed.js':[
-118,
 ],
 'project:dojo-1.8.1/dojox/calc/Grapher.js.uncompressed.js':[
 442,
@@ -121,6 +117,13 @@
 18,
 25,
 ],
+'project:ecmascript6/sonar-web/src/main/js/components/source-viewer/main.js':[
+233,
+252,
+],
+'project:ecmascript6/watchtower.js/src/dirty_checking.js':[
+306,
+],
 'project:frameworks/wordpress/updates.js':[
 158,
 223,
@@ -146,7 +149,6 @@
 'project:mootools-core-1.4.5-full-nocompat.js':[
 3251,
 3256,
-3738,
 ],
 'project:open-layers-2.12/OpenLayers/BaseTypes.js':[
 131,
