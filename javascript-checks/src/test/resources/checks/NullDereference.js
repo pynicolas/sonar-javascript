@@ -241,3 +241,13 @@ function one_issue_per_symbol() {
     x.bar(); // no issue here as we already have issue for same symbol
   }
 }
+
+function variable_holding_condition_result(x, y) {
+  if ((x != null) && y) {
+    x.foo; // ok, no false positive
+  }
+  var condition = (x != null) && y;
+  if (condition) {
+    x.foo; // false positive
+  }
+}
