@@ -19,59 +19,105 @@
  */
 package org.sonar.javascript.se;
 
+import com.google.common.base.Preconditions;
 import org.sonar.javascript.se.sv.SymbolicValue;
 
 /**
  * This class represents a constraint which is met by a {@link SymbolicValue} in a given {@link ProgramState}.
- * Possible constraints are NULL, UNDEFINED, TRUTHY, FALSY and any possible combination of them.
+ * Possible constraints are NULL, UNDEFINED, ZERO, EMPTY_STRING, NAN, FALSE, TRUE, FUNCTION, TRUTHY_NUMBER, TRUTHY_STRING, ARRAY, OTHER_OBJECT and any possible combination of them.
  */
-public enum Constraint {
+public class Constraint {
 
   /*
-   * Internally, we represent each constraint with 4 bits.
+   * Internally, we represent each constraint with 12 bits.
    * Each bit is related to a subset of all possible values.
-   * We assign each bit from left to right to the 4 following subsets:
-   * - truthy
-   * - any falsy value except null and undefined
-   * - undefined
-   * - null
+   * We assign each bit from left to right to the 12 following subsets:
    *
-   * We therefore have 16 possible constraints.
+   * FALSY
+   * 1. null
+   * 2. undefined
+   * 3. 0 (zero numeric value)
+   * 4. empty string ("")
+   * 5. NaN
+   * 6. false (boolean value)
    *
-   * Example: NULL is represented by "0001" and NOT_NULL is represented by "1110".
+   * TRUTHY
+   * 7. true (boolean value)
+   * 8. function
+   * 9. truthy number (any number except 0)
+   * 10. truthy string (any string except empty string)
+   * 11. array
+   * 12. other object
+   *
+   * We therefore have 2^12 possible constraints.
+   *
+   * Example: NULL is represented by "100 000 000 000" and NOT_NULL is represented by "011 111 111 111".
    */
-
-  NO_POSSIBLE_VALUE(0b0000),
-  NULL(0b0001),
-  UNDEFINED(0b0010),
-  NULL_OR_UNDEFINED(0b0011),
-  FALSY_NOT_NULLY(0b0100),
-  FALSY_NOT_UNDEFINED(0b0101),
-  FALSY_NOT_NULL(0b0110),
-  FALSY(0b0111),
-  TRUTHY(0b1000),
-  TRUTHY_OR_NULL(0b1001),
-  TRUTHY_OR_UNDEFINED(0b1010),
-  TRUTHY_OR_NULLY(0b1011),
-  NOT_NULLY(0b1100),
-  NOT_UNDEFINED(0b1101),
-  NOT_NULL(0b1110),
-  ANY_VALUE(0b1111);
-
-  private static final Constraint[] CONSTRAINTS = values();
-
   private int bitSet;
 
-  Constraint(int bitSet) {
+  public static final Constraint ANY_VALUE = new Constraint(0b111_111_111_111);
+  public static final Constraint NO_POSSIBLE_VALUE = new Constraint(0b000_000_000_000);
+
+  public static final Constraint NULL = new Constraint(0b100_000_000_000);
+  public static final Constraint UNDEFINED = new Constraint(0b010_000_000_000);
+  public static final Constraint NULL_OR_UNDEFINED = new Constraint(0b110_000_000_000);
+  public static final Constraint NOT_NULLY = new Constraint(0b001_111_111_111);
+  public static final Constraint TRUTHY = new Constraint(0b000_000_111_111);
+  public static final Constraint FALSY = new Constraint(0b111_111_000_000);
+
+  public enum SubConstraint {
+    NULL(0b100_000_000_000),
+    UNDEFINED(0b010_000_000_000),
+    ZERO(0b001_000_000_000),
+    EMPTY_STRING(0b000_100_000_000),
+    NAN(0b000_010_000_000),
+    FALSE(0b000_001_000_000),
+
+    TRUE(0b000_000_100_000),
+    FUNCTION(0b000_000_010_000),
+    TRUTHY_NUMBER(0b000_000_001_000),
+    TRUTHY_STRING(0b000_000_000_100),
+    ARRAY(0b000_000_000_010),
+    OTHER_OBJECT(0b000_000_000_001)
+    ;
+
+    private int bitSet;
+
+    SubConstraint(int bitSet) {
+      this.bitSet = bitSet;
+    }
+  }
+
+  private Constraint(int bitSet) {
+    Preconditions.checkArgument((bitSet & ~0b111_111_111_111) == 0);
     this.bitSet = bitSet;
   }
 
   private static Constraint get(int bitSet) {
-    return CONSTRAINTS[bitSet];
+    return new Constraint(bitSet);
+  }
+
+  public static Constraint get(SubConstraint subConstraints) {
+    return get(subConstraints.bitSet);
+  }
+
+  public static Constraint or(SubConstraint ... subConstraints) {
+    Preconditions.checkArgument(subConstraints.length > 0);
+
+    int resultBitSet = subConstraints[0].bitSet;
+    for (int i = 1; i < subConstraints.length; i++) {
+      resultBitSet |= subConstraints[i].bitSet;
+    }
+
+    return get(resultBitSet);
   }
 
   public Constraint and(Constraint other) {
     return get(this.bitSet & other.bitSet);
+  }
+
+  public Constraint or(Constraint other) {
+    return get(this.bitSet | other.bitSet);
   }
 
   public Constraint not() {
@@ -104,4 +150,50 @@ public enum Constraint {
     return and(other).equals(NO_POSSIBLE_VALUE);
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    Constraint that = (Constraint) o;
+    return bitSet == that.bitSet;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = bitSet;
+    result = 31 * result + bitSet;
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    if (this.equals(ANY_VALUE)) {
+      return "ANY_VALUE";
+
+    } else if (this.equals(NO_POSSIBLE_VALUE)) {
+      return "NO_POSSIBLE_VALUE";
+
+    } else if (this.equals(TRUTHY)) {
+      return "TRUTHY";
+
+    } else if (this.equals(FALSY)) {
+      return "FALSY";
+
+    } else {
+
+      StringBuilder result = new StringBuilder();
+      for (SubConstraint subConstraint : SubConstraint.values()) {
+        if ((this.bitSet & subConstraint.bitSet) == subConstraint.bitSet) {
+          result.append("|").append(subConstraint.toString());
+        }
+      }
+
+      return result.substring(1);
+    }
+  }
 }

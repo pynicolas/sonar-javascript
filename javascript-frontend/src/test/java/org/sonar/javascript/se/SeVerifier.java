@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.sonar.javascript.se.Constraint.SubConstraint;
 import org.sonar.javascript.tree.impl.JavaScriptTree;
 import org.sonar.javascript.tree.symbols.Scope;
 import org.sonar.javascript.visitors.JavaScriptVisitorContext;
@@ -41,19 +42,23 @@ import org.sonar.plugins.javascript.api.tree.lexical.SyntaxTrivia;
 import org.sonar.plugins.javascript.api.visitors.SubscriptionVisitor;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.sonar.javascript.se.Constraint.SubConstraint.FALSE;
+import static org.sonar.javascript.se.Constraint.SubConstraint.NAN;
 
 class SeVerifier extends SeCheck {
 
   private static Map<String, Constraint> SYMBOLIC_VALUE_KEYS = ImmutableMap.<String, Constraint>builder()
     .put("NULLY", Constraint.NULL_OR_UNDEFINED)
     .put("NOT_NULLY", Constraint.NOT_NULLY)
-    .put("NOT_NULL", Constraint.NOT_NULL)
+    .put("NOT_NULL", Constraint.NULL.not())
     .put("TRUTHY", Constraint.TRUTHY)
-    .put("FALSY", Constraint.FALSY_NOT_NULLY)
+    .put("FALSY", Constraint.or(SubConstraint.ZERO, SubConstraint.EMPTY_STRING, NAN, FALSE))
     .put("NULL", Constraint.NULL)
     .put("UNDEFINED", Constraint.UNDEFINED)
-    .put("NOT_UNDEFINED", Constraint.NOT_UNDEFINED)
-    .put("TRUTHY_OR_NULL", Constraint.TRUTHY_OR_NULL)
+    .put("NOT_UNDEFINED", Constraint.UNDEFINED.not())
+    .put("TRUTHY_OR_NULL", Constraint.TRUTHY.or(Constraint.NULL))
+    .put("ZERO", Constraint.get(SubConstraint.ZERO))
+    .put("TRUTHY_NUMBER", Constraint.get(SubConstraint.TRUTHY_NUMBER))
     .build();
 
   // line - program state - asserted
