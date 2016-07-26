@@ -20,6 +20,8 @@
 package org.sonar.javascript.se;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import org.sonar.javascript.se.sv.SymbolicValue;
 
 /**
@@ -55,41 +57,59 @@ public class Constraint {
    */
   private int bitSet;
 
-  public static final Constraint ANY_VALUE = new Constraint(0b111_111_111_111);
-  public static final Constraint NO_POSSIBLE_VALUE = new Constraint(0b000_000_000_000);
+  public static final Constraint ANY_VALUE = anyValue();
+  public static final Constraint NO_POSSIBLE_VALUE = ANY_VALUE.not();
 
-  public static final Constraint NULL = new Constraint(0b100_000_000_000);
-  public static final Constraint UNDEFINED = new Constraint(0b010_000_000_000);
-  public static final Constraint NULL_OR_UNDEFINED = new Constraint(0b110_000_000_000);
-  public static final Constraint NOT_NULLY = new Constraint(0b001_111_111_111);
-  public static final Constraint TRUTHY = new Constraint(0b000_000_111_111);
-  public static final Constraint FALSY = new Constraint(0b111_111_000_000);
+  public static final Constraint NULL = new Constraint(ValueSubSet.NULL);
+  public static final Constraint UNDEFINED = new Constraint(ValueSubSet.UNDEFINED);
+  public static final Constraint ZERO = new Constraint(ValueSubSet.ZERO);
+  public static final Constraint EMPTY_STRING = new Constraint(ValueSubSet.EMPTY_STRING);
+  public static final Constraint NAN = new Constraint(ValueSubSet.NAN);
+  public static final Constraint FALSE = new Constraint(ValueSubSet.FALSE);
+  public static final Constraint TRUE = new Constraint(ValueSubSet.TRUE);
+  public static final Constraint FUNCTION = new Constraint(ValueSubSet.FUNCTION);
+  public static final Constraint TRUTHY_NUMBER = new Constraint(ValueSubSet.TRUTHY_NUMBER);
+  public static final Constraint TRUTHY_STRING = new Constraint(ValueSubSet.TRUTHY_STRING);
+  public static final Constraint ARRAY = new Constraint(ValueSubSet.ARRAY);
+  public static final Constraint OTHER_OBJECT = new Constraint(ValueSubSet.OTHER_OBJECT);
 
-  public enum SubConstraint {
-    NULL(0b100_000_000_000),
-    UNDEFINED(0b010_000_000_000),
-    ZERO(0b001_000_000_000),
-    EMPTY_STRING(0b000_100_000_000),
-    NAN(0b000_010_000_000),
-    FALSE(0b000_001_000_000),
+  public static final Constraint NULL_OR_UNDEFINED = NULL.or(UNDEFINED);
+  public static final Constraint NOT_NULLY = NULL_OR_UNDEFINED.not();
+  public static final Constraint TRUTHY = or(TRUE, FUNCTION, TRUTHY_NUMBER, TRUTHY_STRING, ARRAY, OTHER_OBJECT);
+  public static final Constraint FALSY = TRUTHY.not();
 
-    TRUE(0b000_000_100_000),
-    FUNCTION(0b000_000_010_000),
-    TRUTHY_NUMBER(0b000_000_001_000),
-    TRUTHY_STRING(0b000_000_000_100),
-    ARRAY(0b000_000_000_010),
-    OTHER_OBJECT(0b000_000_000_001)
-    ;
+  private static final Map<Constraint, String> COMMON_CONSTRAINT_NAMES = ImmutableMap.<Constraint, String>builder()
+    .put(ANY_VALUE, "ANY_VALUE")
+    .put(NO_POSSIBLE_VALUE, "NO_POSSIBLE_VALUE")
+    .put(TRUTHY, "TRUTHY")
+    .put(FALSY, "FALSY")
+    .put(NOT_NULLY, "NOT_NULLY")
+    .build();
 
-    private int bitSet;
+  private enum ValueSubSet {
+    NULL,
+    UNDEFINED,
+    ZERO,
+    EMPTY_STRING,
+    NAN,
+    FALSE,
+    TRUE,
+    FUNCTION,
+    TRUTHY_NUMBER,
+    TRUTHY_STRING,
+    ARRAY,
+    OTHER_OBJECT;
 
-    SubConstraint(int bitSet) {
-      this.bitSet = bitSet;
+    private int bitSet() {
+      return 1 << ordinal();
     }
   }
 
+  private Constraint(ValueSubSet subSet) {
+    this(subSet.bitSet());
+  }
+
   private Constraint(int bitSet) {
-    Preconditions.checkArgument((bitSet & ~0b111_111_111_111) == 0);
     this.bitSet = bitSet;
   }
 
@@ -97,19 +117,21 @@ public class Constraint {
     return new Constraint(bitSet);
   }
 
-  public static Constraint get(SubConstraint subConstraints) {
-    return get(subConstraints.bitSet);
+  private static Constraint anyValue() {
+    int bitSet = 0;
+    for (ValueSubSet subSet : ValueSubSet.values()) {
+      bitSet |= subSet.bitSet();
+    }
+    return new Constraint(bitSet);
   }
 
-  public static Constraint or(SubConstraint ... subConstraints) {
-    Preconditions.checkArgument(subConstraints.length > 0);
-
-    int resultBitSet = subConstraints[0].bitSet;
-    for (int i = 1; i < subConstraints.length; i++) {
-      resultBitSet |= subConstraints[i].bitSet;
+  private static Constraint or(Constraint... constraints) {
+    Preconditions.checkArgument(constraints.length > 0);
+    Constraint constraint = constraints[0];
+    for (int i = 1; i < constraints.length; i++) {
+      constraint = constraint.or(constraints[i]);
     }
-
-    return get(resultBitSet);
+    return constraint;
   }
 
   public Constraint and(Constraint other) {
@@ -125,7 +147,7 @@ public class Constraint {
   }
 
   public Truthiness truthiness() {
-    if (this.equals(TRUTHY)) {
+    if (isStricterOrEqualTo(TRUTHY)) {
       return Truthiness.TRUTHY;
     } else if (isIncompatibleWith(TRUTHY)) {
       return Truthiness.FALSY;
@@ -165,35 +187,22 @@ public class Constraint {
 
   @Override
   public int hashCode() {
-    int result = bitSet;
-    result = 31 * result + bitSet;
-    return result;
+    return bitSet;
   }
 
   @Override
   public String toString() {
-    if (this.equals(ANY_VALUE)) {
-      return "ANY_VALUE";
-
-    } else if (this.equals(NO_POSSIBLE_VALUE)) {
-      return "NO_POSSIBLE_VALUE";
-
-    } else if (this.equals(TRUTHY)) {
-      return "TRUTHY";
-
-    } else if (this.equals(FALSY)) {
-      return "FALSY";
-
-    } else {
-
-      StringBuilder result = new StringBuilder();
-      for (SubConstraint subConstraint : SubConstraint.values()) {
-        if ((this.bitSet & subConstraint.bitSet) == subConstraint.bitSet) {
-          result.append("|").append(subConstraint.toString());
-        }
-      }
-
-      return result.substring(1);
+    String name = COMMON_CONSTRAINT_NAMES.get(this);
+    if (name != null) {
+      return name;
     }
+
+    StringBuilder result = new StringBuilder();
+    for (ValueSubSet subSet : ValueSubSet.values()) {
+      if ((this.bitSet & subSet.bitSet()) == subSet.bitSet()) {
+        result.append("|").append(subSet);
+      }
+    }
+    return result.substring(1);
   }
 }

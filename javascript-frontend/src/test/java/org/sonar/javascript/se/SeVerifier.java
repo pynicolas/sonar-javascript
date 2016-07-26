@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.sonar.javascript.se.Constraint.SubConstraint;
 import org.sonar.javascript.tree.impl.JavaScriptTree;
 import org.sonar.javascript.tree.symbols.Scope;
 import org.sonar.javascript.visitors.JavaScriptVisitorContext;
@@ -42,8 +41,6 @@ import org.sonar.plugins.javascript.api.tree.lexical.SyntaxTrivia;
 import org.sonar.plugins.javascript.api.visitors.SubscriptionVisitor;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.sonar.javascript.se.Constraint.SubConstraint.FALSE;
-import static org.sonar.javascript.se.Constraint.SubConstraint.NAN;
 
 class SeVerifier extends SeCheck {
 
@@ -52,13 +49,13 @@ class SeVerifier extends SeCheck {
     .put("NOT_NULLY", Constraint.NOT_NULLY)
     .put("NOT_NULL", Constraint.NULL.not())
     .put("TRUTHY", Constraint.TRUTHY)
-    .put("FALSY", Constraint.or(SubConstraint.ZERO, SubConstraint.EMPTY_STRING, NAN, FALSE))
+    .put("FALSY", Constraint.FALSY)
     .put("NULL", Constraint.NULL)
     .put("UNDEFINED", Constraint.UNDEFINED)
     .put("NOT_UNDEFINED", Constraint.UNDEFINED.not())
     .put("TRUTHY_OR_NULL", Constraint.TRUTHY.or(Constraint.NULL))
-    .put("ZERO", Constraint.get(SubConstraint.ZERO))
-    .put("TRUTHY_NUMBER", Constraint.get(SubConstraint.TRUTHY_NUMBER))
+    .put("ZERO", Constraint.ZERO)
+    .put("TRUTHY_NUMBER", Constraint.TRUTHY_NUMBER)
     .build();
 
   // line - program state - asserted

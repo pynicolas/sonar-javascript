@@ -20,11 +20,11 @@
 package org.sonar.javascript.se;
 
 import org.junit.Test;
-import org.sonar.javascript.se.Constraint.SubConstraint;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.sonar.javascript.se.Constraint.ANY_VALUE;
 import static org.sonar.javascript.se.Constraint.FALSY;
+import static org.sonar.javascript.se.Constraint.FUNCTION;
 import static org.sonar.javascript.se.Constraint.NO_POSSIBLE_VALUE;
 import static org.sonar.javascript.se.Constraint.NULL;
 import static org.sonar.javascript.se.Constraint.NULL_OR_UNDEFINED;
@@ -57,6 +57,7 @@ public class ConstraintTest {
     assertThat(NULL_OR_UNDEFINED.truthiness()).isEqualTo(Truthiness.FALSY);
     assertThat(FALSY.truthiness()).isEqualTo(Truthiness.FALSY);
     assertThat(TRUTHY.truthiness()).isEqualTo(Truthiness.TRUTHY);
+    assertThat(FUNCTION.truthiness()).isEqualTo(Truthiness.TRUTHY);
   }
 
   @Test
@@ -71,18 +72,15 @@ public class ConstraintTest {
 
   @Test
   public void equals() throws Exception {
-    assertThat(Constraint.get(SubConstraint.NULL)).isEqualTo(Constraint.NULL);
     assertThat(Constraint.NULL).isEqualTo(Constraint.NULL);
-    assertThat(Constraint.get(SubConstraint.UNDEFINED)).isNotEqualTo(Constraint.NULL);
-
-    assertThat(Constraint.NULL).isNotEqualTo(SubConstraint.NULL);
+    assertThat(Constraint.NULL).isNotEqualTo(Constraint.UNDEFINED);
+    assertThat(Constraint.NULL).isNotEqualTo("");
   }
 
   @Test
   public void hash() throws Exception {
-    assertThat(Constraint.get(SubConstraint.NULL).hashCode()).isEqualTo(Constraint.NULL.hashCode());
     assertThat(Constraint.NULL.hashCode()).isEqualTo(Constraint.NULL.hashCode());
-    assertThat(Constraint.get(SubConstraint.UNDEFINED).hashCode()).isNotEqualTo(Constraint.NULL.hashCode());
+    assertThat(Constraint.NULL.hashCode()).isNotEqualTo(Constraint.UNDEFINED.hashCode());
   }
 
   @Test
@@ -94,16 +92,6 @@ public class ConstraintTest {
   }
 
   @Test
-  public void or_sub_constraints() throws Exception {
-    assertThat(Constraint.or(SubConstraint.NULL, SubConstraint.UNDEFINED)).isEqualTo(NULL_OR_UNDEFINED);
-    assertThat(Constraint.or(SubConstraint.NAN, SubConstraint.ZERO, SubConstraint.EMPTY_STRING, SubConstraint.FALSE, SubConstraint.UNDEFINED, SubConstraint.NULL))
-      .isEqualTo(Constraint.FALSY);
-
-    assertThat(Constraint.or(SubConstraint.ZERO, SubConstraint.FALSE)).isEqualTo(Constraint.or(SubConstraint.FALSE, SubConstraint.ZERO));
-
-  }
-
-  @Test
   public void to_string() throws Exception {
     assertThat(Constraint.ANY_VALUE.toString()).isEqualTo("ANY_VALUE");
     assertThat(Constraint.NO_POSSIBLE_VALUE.toString()).isEqualTo("NO_POSSIBLE_VALUE");
@@ -112,6 +100,6 @@ public class ConstraintTest {
 
     assertThat(Constraint.NULL.toString()).isEqualTo("NULL");
     assertThat(Constraint.NULL_OR_UNDEFINED.toString()).isEqualTo("NULL|UNDEFINED");
-    assertThat(Constraint.get(SubConstraint.ZERO).or(Constraint.NULL).toString()).isEqualTo("NULL|ZERO");
+    assertThat(Constraint.ZERO.or(Constraint.NULL).toString()).isEqualTo("NULL|ZERO");
   }
 }

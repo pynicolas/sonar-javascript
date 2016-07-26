@@ -22,7 +22,6 @@ package org.sonar.javascript.se.sv;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sonar.javascript.se.Constraint;
-import org.sonar.javascript.se.Constraint.SubConstraint;
 import org.sonar.javascript.se.ProgramState;
 import org.sonar.plugins.javascript.api.tree.Tree.Kind;
 import org.sonar.plugins.javascript.api.tree.expression.LiteralTree;
@@ -58,16 +57,16 @@ public class LiteralSymbolicValue implements SymbolicValue {
   @Override
   public Constraint inherentConstraint() {
     if (literal.is(Kind.BOOLEAN_LITERAL)) {
-      return "true".equals(literal.value()) ? Constraint.get(SubConstraint.TRUE)
-        : Constraint.get(SubConstraint.FALSE);
+      return "true".equals(literal.value()) ? Constraint.TRUE
+        : Constraint.FALSE;
     }
     if (literal.is(Kind.STRING_LITERAL)) {
-      return literal.value().length() > 2 ? Constraint.get(SubConstraint.TRUTHY_STRING)
-        : Constraint.get(SubConstraint.EMPTY_STRING);
+      return literal.value().length() > 2 ? Constraint.TRUTHY_STRING
+        : Constraint.EMPTY_STRING;
     }
     if (literal.is(Kind.NUMERIC_LITERAL)) {
-      return isTruthyNumeric() ? Constraint.get(SubConstraint.TRUTHY_NUMBER)
-        : Constraint.get(SubConstraint.ZERO);
+      return isTruthyNumeric() ? Constraint.TRUTHY_NUMBER
+        : Constraint.ZERO;
     }
 
     throw new IllegalStateException("Unknown literal: " + literal);

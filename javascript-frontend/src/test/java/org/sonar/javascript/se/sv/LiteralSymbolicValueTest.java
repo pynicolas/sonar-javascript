@@ -24,7 +24,6 @@ import com.sonar.sslr.api.typed.ActionParser;
 import org.junit.Test;
 import org.sonar.javascript.parser.JavaScriptParserBuilder;
 import org.sonar.javascript.se.Constraint;
-import org.sonar.javascript.se.Constraint.SubConstraint;
 import org.sonar.javascript.se.ProgramState;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
 import org.sonar.plugins.javascript.api.tree.Tree;
@@ -33,40 +32,37 @@ import org.sonar.plugins.javascript.api.tree.statement.ExpressionStatementTree;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.sonar.javascript.se.Constraint.TRUTHY_NUMBER;
+import static org.sonar.javascript.se.Constraint.ZERO;
 
 public class LiteralSymbolicValueTest {
 
-  private final Constraint ZERO = Constraint.get(SubConstraint.ZERO);
-  private final Constraint NOT_ZERO = Constraint.get(SubConstraint.TRUTHY_NUMBER);
   private ActionParser<Tree> parser = JavaScriptParserBuilder.createParser(Charsets.UTF_8);
 
   @Test
   public void boolean_literal() throws Exception {
-    assertThat(inherentConstraint("true")).isEqualTo(Constraint.get(SubConstraint.TRUE));
-    assertThat(inherentConstraint("false")).isEqualTo(Constraint.get(SubConstraint.FALSE));
+    assertThat(inherentConstraint("true")).isEqualTo(Constraint.TRUE);
+    assertThat(inherentConstraint("false")).isEqualTo(Constraint.FALSE);
   }
 
   @Test
   public void string_literal() throws Exception {
-    Constraint emptyString = Constraint.get(SubConstraint.EMPTY_STRING);
-    Constraint nonEmptyString = Constraint.get(SubConstraint.TRUTHY_STRING);
-
-    assertThat(inherentConstraint("''")).isEqualTo(emptyString);
-    assertThat(inherentConstraint("\"\"")).isEqualTo(emptyString);
-    assertThat(inherentConstraint("'a'")).isEqualTo(nonEmptyString);
-    assertThat(inherentConstraint("'0'")).isEqualTo(nonEmptyString);
+    assertThat(inherentConstraint("''")).isEqualTo(Constraint.EMPTY_STRING);
+    assertThat(inherentConstraint("\"\"")).isEqualTo(Constraint.EMPTY_STRING);
+    assertThat(inherentConstraint("'a'")).isEqualTo(Constraint.TRUTHY_STRING);
+    assertThat(inherentConstraint("'0'")).isEqualTo(Constraint.TRUTHY_STRING);
   }
 
   @Test
   public void numeric_literal() throws Exception {
-    assertThat(inherentConstraint("42")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("42.")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("42e2")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("0b01")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("0x42")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("0o42")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("0O42")).isEqualTo(NOT_ZERO);
-    assertThat(inherentConstraint("042")).isEqualTo(NOT_ZERO);
+    assertThat(inherentConstraint("42")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("42.")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("42e2")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("0b01")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("0x42")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("0o42")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("0O42")).isEqualTo(TRUTHY_NUMBER);
+    assertThat(inherentConstraint("042")).isEqualTo(TRUTHY_NUMBER);
 
     assertThat(inherentConstraint("0")).isEqualTo(ZERO);
     assertThat(inherentConstraint("0.0")).isEqualTo(ZERO);
