@@ -112,7 +112,7 @@ public class EqualToSymbolicValue implements SymbolicValue {
   }
 
   @Override
-  public Constraint inherentConstraint() {
+  public Constraint inherentConstraint(ProgramState state) {
     return secondOperandConstraint;
   }
 

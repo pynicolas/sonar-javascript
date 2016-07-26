@@ -29,7 +29,7 @@ public interface SymbolicValue {
   List<ProgramState> constrain(ProgramState state, Constraint constraint);
 
   @CheckForNull
-  default Constraint inherentConstraint() {
+  default Constraint inherentConstraint(ProgramState state) {
     return null;
   }
 

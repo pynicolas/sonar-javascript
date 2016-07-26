@@ -149,10 +149,13 @@ public class ProgramState {
 
   public Constraint getConstraint(@Nullable SymbolicValue value) {
     Constraint constraint = constraints.get(value);
-    if (constraint == null) {
-      return Constraint.ANY_VALUE;
+    if (constraint != null) {
+      return constraint;
     }
-    return constraint;
+    if (value != null) {
+      constraint = value.inherentConstraint(this);
+    }
+    return constraint == null ? Constraint.ANY_VALUE : constraint;
   }
 
   public Constraint getConstraint(@Nullable Symbol symbol) {
@@ -197,7 +200,7 @@ public class ProgramState {
     Map<Symbol, SymbolicValue> newValues = new HashMap<>(values);
     newValues.put(variable, value);
     ProgramState newState = new ProgramState(ImmutableMap.copyOf(newValues), constraints, newStack, counter);
-    newState = newState.constrain(value, value.inherentConstraint());
+    newState = newState.constrain(value, value.inherentConstraint(newState));
     return newState;
   }
 

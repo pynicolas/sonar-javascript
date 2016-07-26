@@ -48,14 +48,14 @@ public class LiteralSymbolicValue implements SymbolicValue {
 
   @Override
   public List<ProgramState> constrain(ProgramState state, Constraint constraint) {
-    if (inherentConstraint().isIncompatibleWith(constraint)) {
+    if (inherentConstraint(state).isIncompatibleWith(constraint)) {
       return ImmutableList.of();
     }
     return ImmutableList.of(state);
   }
 
   @Override
-  public Constraint inherentConstraint() {
+  public Constraint inherentConstraint(ProgramState state) {
     if (literal.is(Kind.BOOLEAN_LITERAL)) {
       return "true".equals(literal.value()) ? Constraint.TRUE
         : Constraint.FALSE;

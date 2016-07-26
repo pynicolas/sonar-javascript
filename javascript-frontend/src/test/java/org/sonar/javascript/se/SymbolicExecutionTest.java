@@ -67,7 +67,7 @@ public class SymbolicExecutionTest {
   public void stop_after_npe() throws Exception {
     verifySE("stop_after_npe.js");
   }
-  
+
   @Test
   public void conditions() throws Exception {
     verifySE("conditions.js");
@@ -101,6 +101,11 @@ public class SymbolicExecutionTest {
   @Test
   public void typeof() throws Exception {
     verifySE("typeof.js");
+  }
+
+  @Test
+  public void expressions() throws Exception {
+    verifySE("expressions.js");
   }
 
   @Test
