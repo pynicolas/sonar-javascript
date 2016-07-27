@@ -149,10 +149,11 @@ public class ProgramState {
 
   public Constraint getConstraint(@Nullable SymbolicValue value) {
     Constraint constraint = constraints.get(value);
-    if (constraint == null) {
-      return Constraint.ANY_VALUE;
+
+    if (constraint == null && value != null) {
+      constraint = value.constraint(this);
     }
-    return constraint;
+    return constraint == null ? Constraint.ANY_VALUE : constraint;
   }
 
   public Constraint getConstraint(@Nullable Symbol symbol) {
