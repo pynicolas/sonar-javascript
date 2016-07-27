@@ -124,6 +124,14 @@ public class ProgramState {
     }
   }
 
+  public ProgramState constrainOwnSV(@Nullable SymbolicValue value, @Nullable Constraint constraint) {
+    if (values.containsValue(value)) {
+      return this.constrain(value, constraint);
+    } else {
+      return this;
+    }
+  }
+
   private ImmutableMap<SymbolicValue, Constraint> replaceConstraint(SymbolicValue value, Constraint newConstraint) {
     ImmutableMap.Builder<SymbolicValue, Constraint> constraintsBuilder = ImmutableMap.builder();
     for (Entry<SymbolicValue, Constraint> entry : constraints.entrySet()) {
