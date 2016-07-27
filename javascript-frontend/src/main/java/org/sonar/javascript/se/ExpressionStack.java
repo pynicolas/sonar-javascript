@@ -28,6 +28,7 @@ import org.sonar.javascript.se.sv.LiteralSymbolicValue;
 import org.sonar.javascript.se.sv.LogicalNotSymbolicValue;
 import org.sonar.javascript.se.sv.SpecialSymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValue;
+import org.sonar.javascript.se.sv.SymbolicValueWithConstraint;
 import org.sonar.javascript.se.sv.TypeOfSymbolicValue;
 import org.sonar.javascript.se.sv.UnknownSymbolicValue;
 import org.sonar.javascript.tree.impl.JavaScriptTree;
@@ -152,11 +153,13 @@ public class ExpressionStack {
       case THIS:
       case SUPER:
       case ARROW_FUNCTION:
-      case OBJECT_LITERAL:
       case JSX_SELF_CLOSING_ELEMENT:
       case JSX_STANDARD_ELEMENT:
       case CLASS_EXPRESSION:
         pushUnknown(newStack);
+        break;
+      case OBJECT_LITERAL:
+        newStack.push(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
         break;
       case ARRAY_LITERAL:
         pop(newStack, ((ArrayLiteralTree) expression).elements().size());
