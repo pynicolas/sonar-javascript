@@ -46,9 +46,9 @@ public class LogicalNotSymbolicValue implements SymbolicValue {
   }
 
   @Override
-  public Constraint inherentConstraint() {
-    Constraint negatedConstraint = negatedValue.inherentConstraint();
-    return negatedConstraint == null ? null : negatedConstraint.not();
+  public Constraint constraint(ProgramState state) {
+    Constraint negatedConstraint = negatedValue.constraint(state);
+    return negatedConstraint.equals(Constraint.ANY_VALUE) ? Constraint.ANY_VALUE : negatedConstraint.not();
   }
 
   @Override

@@ -197,7 +197,7 @@ public class ProgramState {
     Map<Symbol, SymbolicValue> newValues = new HashMap<>(values);
     newValues.put(variable, value);
     ProgramState newState = new ProgramState(ImmutableMap.copyOf(newValues), constraints, newStack, counter);
-    newState = newState.constrain(value, value.inherentConstraint());
+    newState = newState.constrain(value, value.constraint(newState));
     return newState;
   }
 
