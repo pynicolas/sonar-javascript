@@ -34,9 +34,6 @@ public class LogicalNotSymbolicValue implements SymbolicValue {
   }
 
   public static SymbolicValue create(SymbolicValue negatedValue) {
-    if (UnknownSymbolicValue.UNKNOWN.equals(negatedValue)) {
-      return UnknownSymbolicValue.UNKNOWN;
-    }
     return new LogicalNotSymbolicValue(negatedValue);
   }
 
@@ -47,8 +44,14 @@ public class LogicalNotSymbolicValue implements SymbolicValue {
 
   @Override
   public Constraint constraint(ProgramState state) {
-    Constraint negatedConstraint = negatedValue.constraint(state);
-    return negatedConstraint.equals(Constraint.ANY_VALUE) ? Constraint.ANY_VALUE : negatedConstraint.not();
+    Constraint negatedConstraint = state.getConstraint(negatedValue);
+    if (negatedConstraint.isStricterOrEqualTo(Constraint.TRUTHY)) {
+      return Constraint.FALSE;
+    }
+    if (negatedConstraint.isStricterOrEqualTo(Constraint.FALSY)) {
+      return Constraint.TRUE;
+    }
+    return Constraint.BOOLEAN;
   }
 
   @Override
