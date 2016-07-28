@@ -118,6 +118,12 @@ public class SymbolicExecutionTest {
     verifySE("func_decl.js");
   }
 
+  @Test
+  public void expression_stack_size() throws Exception {
+    // should not fail
+    verifySE("expression_stack_size.js");
+  }
+
   private void runSe(String filename) {
     JavaScriptVisitorContext context = createContext(new File("src/test/resources/se/", filename));
     verifier.scanExpectedIssues(context);

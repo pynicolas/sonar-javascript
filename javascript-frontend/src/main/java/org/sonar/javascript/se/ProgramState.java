@@ -19,6 +19,7 @@
  */
 package org.sonar.javascript.se;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -187,7 +188,12 @@ public class ProgramState {
     return new ProgramState(values, constraints, stack.push(value), counter);
   }
 
+  public ProgramState removeLastValue() {
+    return new ProgramState(values, constraints, stack.removeLastValue(), counter);
+  }
+
   public ProgramState clearStack() {
+    Preconditions.checkState(stack.size() == 1, "Stack should contain only one element before being cleaned: " + stack.toString());
     return new ProgramState(values, constraints, ExpressionStack.emptyStack(), counter);
   }
 
