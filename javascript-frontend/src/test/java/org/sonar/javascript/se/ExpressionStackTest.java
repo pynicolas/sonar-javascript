@@ -30,6 +30,7 @@ import org.sonar.javascript.se.sv.LogicalNotSymbolicValue;
 import org.sonar.javascript.se.sv.SimpleSymbolicValue;
 import org.sonar.javascript.se.sv.SpecialSymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValue;
+import org.sonar.javascript.se.sv.SymbolicValueWithConstraint;
 import org.sonar.javascript.se.sv.TypeOfSymbolicValue;
 import org.sonar.javascript.se.sv.UnknownSymbolicValue;
 import org.sonar.plugins.javascript.api.tree.ScriptTree;
@@ -39,6 +40,7 @@ import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
 import org.sonar.plugins.javascript.api.tree.statement.ExpressionStatementTree;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.sonar.javascript.se.ExpressionStack.emptyStack;
 import static org.sonar.javascript.se.sv.UnknownSymbolicValue.UNKNOWN;
 
@@ -160,7 +162,7 @@ public class ExpressionStackTest {
   @Test
   public void arrow_function() throws Exception {
     execute("() => { foo(); }");
-    assertSingleValueInStack(UNKNOWN);
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.FUNCTION));
   }
 
   @Test
@@ -173,7 +175,7 @@ public class ExpressionStackTest {
   @Test
   public void class_expression() throws Exception {
     execute("class {}");
-    assertSingleValueInStack(UNKNOWN);
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
   }
 
   @Test
@@ -209,6 +211,11 @@ public class ExpressionStackTest {
 
     if (expected instanceof EqualToSymbolicValue) {
       assertThat(((EqualToSymbolicValue) expected).equalToSV(stack.peek())).isTrue();
+
+    } else if (expected instanceof SymbolicValueWithConstraint) {
+      assertThat(stack.peek()).isInstanceOf(SymbolicValueWithConstraint.class);
+      assertThat(stack.peek().constraint(mock(ProgramState.class))).isEqualTo(expected.constraint(mock(ProgramState.class)));
+
     } else {
       assertThat(stack.peek()).isEqualTo(expected);
     }

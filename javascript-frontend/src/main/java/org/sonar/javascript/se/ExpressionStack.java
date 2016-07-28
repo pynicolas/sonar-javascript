@@ -149,17 +149,19 @@ public class ExpressionStack {
         newStack.pop();
         newStack.push(result);
         break;
-      case REGULAR_EXPRESSION_LITERAL:
       case FUNCTION_EXPRESSION:
       case GENERATOR_FUNCTION_EXPRESSION:
+      case ARROW_FUNCTION:
+        newStack.push(new SymbolicValueWithConstraint(Constraint.FUNCTION));
+        break;
+      case REGULAR_EXPRESSION_LITERAL:
       case THIS:
       case SUPER:
-      case ARROW_FUNCTION:
       case JSX_SELF_CLOSING_ELEMENT:
       case JSX_STANDARD_ELEMENT:
-      case CLASS_EXPRESSION:
         pushUnknown(newStack);
         break;
+      case CLASS_EXPRESSION:
       case OBJECT_LITERAL:
         newStack.push(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
         break;
