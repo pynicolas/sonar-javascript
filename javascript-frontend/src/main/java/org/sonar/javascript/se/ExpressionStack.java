@@ -133,7 +133,7 @@ public class ExpressionStack {
         NewExpressionTree newExpressionTree = (NewExpressionTree) expression;
         int arguments = newExpressionTree.arguments() == null ? 0 : newExpressionTree.arguments().parameters().size();
         pop(newStack, arguments + 1);
-        pushUnknown(newStack);
+        newStack.push(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT.or(Constraint.ARRAY)));
         break;
       case DOT_MEMBER_EXPRESSION:
       case SPREAD_ELEMENT:
