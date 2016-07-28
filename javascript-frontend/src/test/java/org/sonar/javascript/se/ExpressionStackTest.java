@@ -23,6 +23,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.sonar.sslr.api.typed.ActionParser;
 import org.junit.Test;
+import org.sonar.javascript.cfg.ControlFlowGraph;
 import org.sonar.javascript.parser.JavaScriptParserBuilder;
 import org.sonar.javascript.se.sv.EqualToSymbolicValue;
 import org.sonar.javascript.se.sv.LiteralSymbolicValue;
@@ -59,7 +60,7 @@ public class ExpressionStackTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void identifier() throws Exception {
-    execute("a");
+    executeTopExpression("a");
   }
 
   @Test
@@ -70,91 +71,78 @@ public class ExpressionStackTest {
 
   @Test
   public void logical_not() throws Exception {
-    pushSimpleValues(1);
     execute("!a");
     assertSingleValueInStack(LogicalNotSymbolicValue.class);
   }
 
   @Test
   public void equal_unknown() throws Exception {
-    pushValues(simple1, UNKNOWN);
-    execute("a == null");
+    execute("a == foo()");
     assertSingleValueInStack(UNKNOWN);
   }
 
   @Test
   public void equal_null() throws Exception {
-    pushValues(simple1, SpecialSymbolicValue.NULL);
     execute("a == null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL_OR_UNDEFINED));
   }
 
   @Test
   public void null_equal() throws Exception {
-    pushValues(SpecialSymbolicValue.NULL, simple1);
     execute("null == a");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL_OR_UNDEFINED));
   }
 
   @Test
   public void not_equal_null() throws Exception {
-    pushValues(simple1, SpecialSymbolicValue.NULL);
     execute("a != null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NOT_NULLY));
   }
 
   @Test
   public void strict_equal_null() throws Exception {
-    pushValues(simple1, SpecialSymbolicValue.NULL);
     execute("a === null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL));
   }
 
   @Test
   public void strict_not_equal_null() throws Exception {
-    pushValues(simple1, SpecialSymbolicValue.NULL);
     execute("a !== null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL.not()));
   }
 
   @Test
   public void typeof() throws Exception {
-    pushValues(simple1);
     execute("typeof a");
     assertSingleValueInStack(TypeOfSymbolicValue.class);
   }
 
   @Test
   public void new_expression() throws Exception {
-    pushValues(simple1);
     execute("new a");
     assertSingleValueInStack(UNKNOWN);
   }
 
   @Test
   public void call_expression() throws Exception {
-    pushSimpleValues(3);
     execute("a(b, c)");
     assertSingleValueInStack(UnknownSymbolicValue.class);
   }
 
   @Test
   public void array_literal() throws Exception {
-    pushSimpleValues(3);
     execute("[a, b, c]");
     assertSingleValueInStack(UnknownSymbolicValue.class);
   }
 
   @Test
   public void template_literal() throws Exception {
-    pushSimpleValues(3);
     execute("`${a} ${b} ${c}`");
     assertSingleValueInStack(UnknownSymbolicValue.class);
   }
 
   @Test
   public void comma_operator() throws Exception {
-    pushSimpleValues(2);
     execute("a, b");
     assertSingleValueInStack(SimpleSymbolicValue.class);
   }
@@ -166,8 +154,43 @@ public class ExpressionStackTest {
   }
 
   @Test
+  public void empty_object_literal() throws Exception {
+    execute("x = {}");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+  }
+
+  @Test
+  public void object_literal() throws Exception {
+    execute("x = {...a}");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = {a: b}");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = {'str': b}");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = {42: b}");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = {[1 + 2]: b}");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = { method(){} }");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = { a }");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = { a, b }");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+
+    execute("x = { a, b: foo(), ... rest }");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+  }
+
+  @Test
   public void await_expression() throws Exception {
-    pushSimpleValues(1);
     execute("await foo");
     assertSingleValueInStack(UNKNOWN);
   }
@@ -221,12 +244,6 @@ public class ExpressionStackTest {
     }
   }
 
-  private void pushSimpleValues(int numberOfValues) {
-    for (int i = 0; i < numberOfValues; i++) {
-      stack = stack.push(new SimpleSymbolicValue(i));
-    }
-  }
-
   private void pushValues(SymbolicValue... values) {
     for (SymbolicValue value : values) {
       stack = stack.push(value);
@@ -234,6 +251,22 @@ public class ExpressionStackTest {
   }
 
   private void execute(String expressionSource) {
+    stack = ExpressionStack.emptyStack();
+    ScriptTree script = (ScriptTree) parser.parse(expressionSource);
+
+    ControlFlowGraph cfg = ControlFlowGraph.build(script);
+    for (Tree element : cfg.start().elements()) {
+      if (element.is(Kind.IDENTIFIER_REFERENCE)) {
+        pushValues(simple1);
+      } else if (element instanceof ExpressionTree) {
+        stack = stack.execute((ExpressionTree) element);
+      }
+    }
+
+
+  }
+
+  private void executeTopExpression(String expressionSource) {
     ScriptTree script = (ScriptTree) parser.parse(expressionSource);
     Tree tree = script.items().items().get(0);
     if (tree.is(Kind.EXPRESSION_STATEMENT)) {

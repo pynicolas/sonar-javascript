@@ -34,12 +34,16 @@ import org.sonar.javascript.se.sv.SymbolicValueWithConstraint;
 import org.sonar.javascript.se.sv.TypeOfSymbolicValue;
 import org.sonar.javascript.se.sv.UnknownSymbolicValue;
 import org.sonar.javascript.tree.impl.JavaScriptTree;
+import org.sonar.plugins.javascript.api.tree.Tree;
 import org.sonar.plugins.javascript.api.tree.Tree.Kind;
+import org.sonar.plugins.javascript.api.tree.declaration.MethodDeclarationTree;
 import org.sonar.plugins.javascript.api.tree.expression.ArrayLiteralTree;
 import org.sonar.plugins.javascript.api.tree.expression.CallExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.IdentifierTree;
 import org.sonar.plugins.javascript.api.tree.expression.LiteralTree;
+import org.sonar.plugins.javascript.api.tree.expression.ObjectLiteralTree;
+import org.sonar.plugins.javascript.api.tree.expression.PairPropertyTree;
 import org.sonar.plugins.javascript.api.tree.expression.TemplateLiteralTree;
 
 /**
@@ -126,6 +130,7 @@ public class ExpressionStack {
       case NEW_EXPRESSION:
       case DOT_MEMBER_EXPRESSION:
       case SPREAD_ELEMENT:
+      // fixme: "yield" without argument
       case YIELD_EXPRESSION:
       case POSTFIX_DECREMENT:
       case POSTFIX_INCREMENT:
@@ -157,12 +162,16 @@ public class ExpressionStack {
       case REGULAR_EXPRESSION_LITERAL:
       case THIS:
       case SUPER:
+      // fixme: pop
       case JSX_SELF_CLOSING_ELEMENT:
       case JSX_STANDARD_ELEMENT:
         pushUnknown(newStack);
         break;
       case CLASS_EXPRESSION:
+        newStack.push(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+        break;
       case OBJECT_LITERAL:
+        popObjectLiteralProperties((ObjectLiteralTree)expression, newStack);
         newStack.push(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
         break;
       case ARRAY_LITERAL:
@@ -222,6 +231,20 @@ public class ExpressionStack {
         throw new IllegalArgumentException("Unexpected kind of expression to execute: " + kind);
     }
     return new ExpressionStack(newStack);
+  }
+
+  private void popObjectLiteralProperties(ObjectLiteralTree objectLiteralTree, Deque<SymbolicValue> newStack) {
+    for (Tree property : objectLiteralTree.properties()) {
+      if (property.is(Kind.PAIR_PROPERTY)) {
+        Tree key = ((PairPropertyTree) property).key();
+        if (key.is(Kind.STRING_LITERAL, Kind.NUMERIC_LITERAL, Kind.COMPUTED_PROPERTY_NAME)) {
+          newStack.pop();
+        }
+      }
+      if (!(property instanceof MethodDeclarationTree)) {
+        newStack.pop();
+      }
+    }
   }
 
   private Deque<SymbolicValue> copy() {
