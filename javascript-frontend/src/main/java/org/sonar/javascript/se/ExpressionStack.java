@@ -47,6 +47,7 @@ import org.sonar.plugins.javascript.api.tree.expression.NewExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ObjectLiteralTree;
 import org.sonar.plugins.javascript.api.tree.expression.PairPropertyTree;
 import org.sonar.plugins.javascript.api.tree.expression.TemplateLiteralTree;
+import org.sonar.plugins.javascript.api.tree.expression.YieldExpressionTree;
 
 /**
  * This class stores the stack of symbolic values corresponding to the order of expression evaluation.
@@ -137,12 +138,16 @@ public class ExpressionStack {
         break;
       case DOT_MEMBER_EXPRESSION:
       case SPREAD_ELEMENT:
-      // fixme: "yield" without argument
-      case YIELD_EXPRESSION:
       case DELETE:
       case VOID:
       case AWAIT:
         pop(newStack, 1);
+        pushUnknown(newStack);
+        break;
+      case YIELD_EXPRESSION:
+        if (((YieldExpressionTree) expression).argument() != null) {
+          pop(newStack, 1);
+        }
         pushUnknown(newStack);
         break;
       case POSTFIX_DECREMENT:

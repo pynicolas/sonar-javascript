@@ -126,6 +126,15 @@ public class ExpressionStackTest {
   }
 
   @Test
+  public void yield() throws Exception {
+    execute("yield a");
+    assertSingleValueInStack(UNKNOWN);
+
+    execute("yield");
+    assertSingleValueInStack(UNKNOWN);
+  }
+
+  @Test
   public void new_expression() throws Exception {
     SymbolicValueWithConstraint expected = new SymbolicValueWithConstraint(Constraint.ARRAY.or(Constraint.OTHER_OBJECT));
 
