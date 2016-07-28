@@ -80,37 +80,42 @@ public class ExpressionStackTest {
   @Test
   public void equal_unknown() throws Exception {
     execute("a == foo()");
-    assertSingleValueInStack(UNKNOWN);
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
   }
 
   @Test
   public void equal_null() throws Exception {
     execute("a == null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL_OR_UNDEFINED));
+    assertSingleValueInStackWithConstraint(Constraint.BOOLEAN);
   }
 
   @Test
   public void null_equal() throws Exception {
     execute("null == a");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL_OR_UNDEFINED));
+    assertSingleValueInStackWithConstraint(Constraint.BOOLEAN);
   }
 
   @Test
   public void not_equal_null() throws Exception {
     execute("a != null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NOT_NULLY));
+    assertSingleValueInStackWithConstraint(Constraint.BOOLEAN);
   }
 
   @Test
   public void strict_equal_null() throws Exception {
     execute("a === null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL));
+    assertSingleValueInStackWithConstraint(Constraint.BOOLEAN);
   }
 
   @Test
   public void strict_not_equal_null() throws Exception {
     execute("a !== null");
     assertSingleValueInStack(new EqualToSymbolicValue(simple1, Constraint.NULL.not()));
+    assertSingleValueInStackWithConstraint(Constraint.BOOLEAN);
   }
 
   @Test
