@@ -178,13 +178,13 @@ public class ExpressionStack {
         newStack.push(new SymbolicValueWithConstraint(Constraint.FUNCTION));
         break;
       case REGULAR_EXPRESSION_LITERAL:
-      case THIS:
       case SUPER:
       // fixme: pop
       case JSX_SELF_CLOSING_ELEMENT:
       case JSX_STANDARD_ELEMENT:
         pushUnknown(newStack);
         break;
+      case THIS:
       case CLASS_EXPRESSION:
         newStack.push(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
         break;
