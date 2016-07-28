@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.sonar.javascript.se.sv.EqualToSymbolicValue;
 import org.sonar.javascript.se.sv.LiteralSymbolicValue;
 import org.sonar.javascript.se.sv.LogicalNotSymbolicValue;
+import org.sonar.javascript.se.sv.PlusSymbolicValue;
 import org.sonar.javascript.se.sv.SpecialSymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValueWithConstraint;
@@ -138,6 +139,12 @@ public class ExpressionStack {
       case SPREAD_ELEMENT:
       // fixme: "yield" without argument
       case YIELD_EXPRESSION:
+      case DELETE:
+      case VOID:
+      case AWAIT:
+        pop(newStack, 1);
+        pushUnknown(newStack);
+        break;
       case POSTFIX_DECREMENT:
       case POSTFIX_INCREMENT:
       case PREFIX_DECREMENT:
@@ -145,11 +152,8 @@ public class ExpressionStack {
       case UNARY_MINUS:
       case UNARY_PLUS:
       case BITWISE_COMPLEMENT:
-      case DELETE:
-      case VOID:
-      case AWAIT:
         pop(newStack, 1);
-        pushUnknown(newStack);
+        newStack.push(new SymbolicValueWithConstraint(Constraint.NUMBER));
         break;
       case CALL_EXPRESSION:
         pop(newStack, ((CallExpressionTree) expression).arguments().parameters().size() + 1);
@@ -202,26 +206,34 @@ public class ExpressionStack {
       case OR_ASSIGNMENT:
       case BRACKET_MEMBER_EXPRESSION:
       case TAGGED_TEMPLATE:
-      case MULTIPLY:
       case EXPONENT:
-      case DIVIDE:
-      case REMAINDER:
-      case PLUS:
-      case MINUS:
       case LEFT_SHIFT:
       case RIGHT_SHIFT:
       case UNSIGNED_RIGHT_SHIFT:
       case RELATIONAL_IN:
       case INSTANCE_OF:
-      case LESS_THAN:
-      case GREATER_THAN:
-      case LESS_THAN_OR_EQUAL_TO:
-      case GREATER_THAN_OR_EQUAL_TO:
       case BITWISE_AND:
       case BITWISE_XOR:
       case BITWISE_OR:
         pop(newStack, 2);
         pushUnknown(newStack);
+        break;
+      case LESS_THAN:
+      case GREATER_THAN:
+      case LESS_THAN_OR_EQUAL_TO:
+      case GREATER_THAN_OR_EQUAL_TO:
+        pop(newStack, 2);
+        newStack.push(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+        break;
+      case PLUS:
+        newStack.push(new PlusSymbolicValue(newStack.pop(), newStack.pop()));
+        break;
+      case MINUS:
+      case DIVIDE:
+      case REMAINDER:
+      case MULTIPLY:
+        pop(newStack, 2);
+        newStack.push(new SymbolicValueWithConstraint(Constraint.NUMBER));
         break;
       case COMMA_OPERATOR:
         SymbolicValue commaResult = newStack.pop();

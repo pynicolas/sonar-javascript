@@ -52,6 +52,8 @@ public class ExpressionStackTest {
   private SymbolicValue simple1 = new SimpleSymbolicValue(1);
   private SymbolicValue simple2 = new SimpleSymbolicValue(2);
 
+  private ProgramState programState = ProgramState.emptyState();
+
   @Test
   public void null_value() throws Exception {
     execute("null");
@@ -205,6 +207,78 @@ public class ExpressionStackTest {
   }
 
   @Test
+  public void boolean_expressions() throws Exception {
+    execute("a < b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+
+    execute("a <= b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+
+    execute("a > b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+
+    execute("a >= b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+  }
+
+  @Test
+  public void number_expressions() throws Exception {
+    execute("a - b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("a * b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("a / b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("a % b");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("a++");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("a--");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("++a");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("--a");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("-a");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("+a");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+
+    execute("~a");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.NUMBER));
+  }
+
+  @Test
+  public void plus_binary_expression() throws Exception {
+    execute("x = a + b");
+    assertSingleValueInStackWithConstraint(Constraint.NUMBER.or(Constraint.STRING));
+
+    execute("x = a + 'str'");
+    assertSingleValueInStackWithConstraint(Constraint.STRING);
+
+    execute("x = a + 1");
+    assertSingleValueInStackWithConstraint(Constraint.NUMBER);
+
+    execute("x = 'str' + 1");
+    assertSingleValueInStackWithConstraint(Constraint.STRING);
+
+    execute("x = 'str' + true");
+    assertSingleValueInStackWithConstraint(Constraint.STRING);
+
+    execute("x = a + true");
+    assertSingleValueInStackWithConstraint(Constraint.NUMBER);
+  }
+
+  @Test
   public void isEmpty() throws Exception {
     assertThat(emptyStack().isEmpty()).isTrue();
     assertThat(emptyStack().push(simple1).isEmpty()).isFalse();
@@ -245,6 +319,12 @@ public class ExpressionStackTest {
     } else {
       assertThat(stack.peek()).isEqualTo(expected);
     }
+  }
+
+  private void assertSingleValueInStackWithConstraint(Constraint constraint) {
+    assertThat(stack.size()).isEqualTo(1);
+    SymbolicValue peek = stack.peek();
+    assertThat(peek.constraint(programState)).isEqualTo(constraint);
   }
 
   private void pushValues(SymbolicValue... values) {
