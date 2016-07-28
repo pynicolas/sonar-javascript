@@ -37,6 +37,8 @@ import org.sonar.plugins.javascript.api.visitors.TreeVisitorContext;
  */
 public class SeCheck implements JavaScriptCheck {
 
+  TreeVisitorContext context;
+
   private Issues issues = new Issues(this);
 
   /**
@@ -112,5 +114,13 @@ public class SeCheck implements JavaScriptCheck {
     issues.reset();
     return result;
     // we might add method "getIssue" to this class and use it instead of this one in SeCheckDispatcher
+  }
+
+  protected TreeVisitorContext context() {
+    return context;
+  }
+
+  public void setContext(TreeVisitorContext context) {
+    this.context = context;
   }
 }
