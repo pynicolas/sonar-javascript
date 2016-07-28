@@ -121,6 +121,9 @@ public class ExpressionStackTest {
   public void new_expression() throws Exception {
     execute("new a");
     assertSingleValueInStack(UNKNOWN);
+
+    execute("new a(1)");
+    assertSingleValueInStack(UNKNOWN);
   }
 
   @Test

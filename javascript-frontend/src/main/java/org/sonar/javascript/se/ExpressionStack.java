@@ -42,6 +42,7 @@ import org.sonar.plugins.javascript.api.tree.expression.CallExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.IdentifierTree;
 import org.sonar.plugins.javascript.api.tree.expression.LiteralTree;
+import org.sonar.plugins.javascript.api.tree.expression.NewExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ObjectLiteralTree;
 import org.sonar.plugins.javascript.api.tree.expression.PairPropertyTree;
 import org.sonar.plugins.javascript.api.tree.expression.TemplateLiteralTree;
@@ -128,6 +129,11 @@ public class ExpressionStack {
         newStack.push(new TypeOfSymbolicValue(newStack.pop()));
         break;
       case NEW_EXPRESSION:
+        NewExpressionTree newExpressionTree = (NewExpressionTree) expression;
+        int arguments = newExpressionTree.arguments() == null ? 0 : newExpressionTree.arguments().parameters().size();
+        pop(newStack, arguments + 1);
+        pushUnknown(newStack);
+        break;
       case DOT_MEMBER_EXPRESSION:
       case SPREAD_ELEMENT:
       // fixme: "yield" without argument
