@@ -122,6 +122,7 @@ public class ExpressionStackTest {
   public void typeof() throws Exception {
     execute("typeof a");
     assertSingleValueInStack(TypeOfSymbolicValue.class);
+    assertSingleValueInStackWithConstraint(Constraint.STRING);
   }
 
   @Test

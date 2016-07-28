@@ -55,6 +55,11 @@ public class TypeOfSymbolicValue implements SymbolicValue {
   }
 
   @Override
+  public Constraint constraint(ProgramState state) {
+    return Constraint.STRING;
+  }
+
+  @Override
   public String toString() {
     return "typeof " + operandValue;
   }
