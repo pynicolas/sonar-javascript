@@ -137,7 +137,7 @@ public class ExpressionStackTest {
   @Test
   public void array_literal() throws Exception {
     execute("[a, b, c]");
-    assertSingleValueInStack(UnknownSymbolicValue.class);
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.ARRAY));
   }
 
   @Test
@@ -216,6 +216,7 @@ public class ExpressionStackTest {
 
     execute("a > b");
     assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+
 
     execute("a >= b");
     assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
