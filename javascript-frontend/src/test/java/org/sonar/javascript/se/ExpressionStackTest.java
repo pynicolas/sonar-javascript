@@ -135,6 +135,12 @@ public class ExpressionStackTest {
   }
 
   @Test
+  public void delete() throws Exception {
+    execute("delete a.prop");
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+  }
+
+  @Test
   public void new_expression() throws Exception {
     SymbolicValueWithConstraint expected = new SymbolicValueWithConstraint(Constraint.ARRAY.or(Constraint.OTHER_OBJECT));
 

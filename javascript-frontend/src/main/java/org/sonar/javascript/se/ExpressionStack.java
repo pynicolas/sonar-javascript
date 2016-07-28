@@ -138,11 +138,14 @@ public class ExpressionStack {
         break;
       case DOT_MEMBER_EXPRESSION:
       case SPREAD_ELEMENT:
-      case DELETE:
       case VOID:
       case AWAIT:
         pop(newStack, 1);
         pushUnknown(newStack);
+        break;
+      case DELETE:
+        pop(newStack, 1);
+        newStack.push(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
         break;
       case YIELD_EXPRESSION:
         if (((YieldExpressionTree) expression).argument() != null) {
