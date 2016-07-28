@@ -80,7 +80,10 @@ public class DifferentTypesComparisonCheck extends SeCheck {
         raiseIssue(entry.getKey());
       }
     }
+  }
 
+  @Override
+  public void startOfExecution(Scope functionScope) {
     typeDifference.clear();
   }
 
