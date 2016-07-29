@@ -179,7 +179,6 @@ public class ExpressionStack {
         break;
       case REGULAR_EXPRESSION_LITERAL:
       case SUPER:
-      // fixme: pop
       case JSX_SELF_CLOSING_ELEMENT:
       case JSX_STANDARD_ELEMENT:
         pushUnknown(newStack);
