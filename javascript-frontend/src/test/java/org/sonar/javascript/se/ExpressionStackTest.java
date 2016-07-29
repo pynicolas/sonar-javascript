@@ -143,12 +143,12 @@ public class ExpressionStackTest {
   @Test
   public void this_object() throws Exception {
     execute("this");
-    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OTHER_OBJECT));
+    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.OBJECT));
   }
 
   @Test
   public void new_expression() throws Exception {
-    SymbolicValueWithConstraint expected = new SymbolicValueWithConstraint(Constraint.ARRAY.or(Constraint.OTHER_OBJECT));
+    SymbolicValueWithConstraint expected = new SymbolicValueWithConstraint(Constraint.ARRAY.or(Constraint.OBJECT));
 
     execute("new a");
     assertSingleValueInStack(expected);
@@ -157,6 +157,9 @@ public class ExpressionStackTest {
     assertSingleValueInStack(expected);
 
     execute("new Array(1)");
+    assertSingleValueInStack(expected);
+
+    execute("new Function('return 1;')");
     assertSingleValueInStack(expected);
   }
 
