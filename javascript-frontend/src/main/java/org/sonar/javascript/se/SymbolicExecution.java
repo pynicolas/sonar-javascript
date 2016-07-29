@@ -33,6 +33,7 @@ import org.sonar.javascript.cfg.CfgBranchingBlock;
 import org.sonar.javascript.cfg.ControlFlowGraph;
 import org.sonar.javascript.se.sv.SymbolicValue;
 import org.sonar.javascript.tree.TreeKinds;
+import org.sonar.javascript.tree.impl.JavaScriptTree;
 import org.sonar.javascript.tree.symbols.Scope;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 import org.sonar.plugins.javascript.api.tree.Tree;
@@ -46,7 +47,6 @@ import org.sonar.plugins.javascript.api.tree.expression.MemberExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ParenthesisedExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.UnaryExpressionTree;
 import org.sonar.plugins.javascript.api.tree.statement.ForObjectStatementTree;
-import org.sonar.plugins.javascript.api.tree.statement.StatementTree;
 import org.sonar.plugins.javascript.api.tree.statement.VariableDeclarationTree;
 
 import static org.sonar.plugins.javascript.api.symbols.Symbol.Kind.CLASS;
@@ -170,10 +170,7 @@ public class SymbolicExecution {
         }
       }
 
-      if (element.is(Kind.EXPRESSION_STATEMENT)) {
-        currentState = currentState.clearStack();
-
-      } else if (element.is(Kind.IDENTIFIER_REFERENCE) && !isUndefined((IdentifierTree) element)) {
+      if (element.is(Kind.IDENTIFIER_REFERENCE) && !isUndefined((IdentifierTree) element)) {
         SymbolicValue symbolicValue = currentState.getSymbolicValue(((IdentifierTree) element).symbol());
         currentState = currentState.pushToStack(symbolicValue);
 
@@ -206,11 +203,25 @@ public class SymbolicExecution {
       }
 
       afterBlockElement(currentState, element);
+
+      if (element instanceof ExpressionTree &&
+        getParent(element).is(Kind.EXPRESSION_STATEMENT, Kind.FOR_STATEMENT, Kind.FOR_IN_STATEMENT, Kind.FOR_OF_STATEMENT)) {
+        currentState = currentState.clearStack();
+      }
     }
 
     if (!stopExploring) {
       handleSuccessors(block, currentState);
     }
+  }
+
+  private static Tree getParent(Tree tree) {
+    JavaScriptTree jsTree = (JavaScriptTree) tree;
+    Tree parent = jsTree.getParent();
+    if (parent.is(Kind.PARENTHESISED_EXPRESSION)) {
+      return getParent(parent);
+    }
+    return parent;
   }
 
   public static boolean isUndefined(IdentifierTree tree) {
@@ -251,10 +262,6 @@ public class SymbolicExecution {
       Tree branchingTree = branchingBlock.branchingTree();
 
       SymbolicValue conditionSymbolicValue = currentState.peekStack();
-
-      if (branchingTree instanceof StatementTree) {
-        currentState = currentState.clearStack();
-      }
 
       if (branchingTree.is(
         Kind.CONDITIONAL_EXPRESSION,
