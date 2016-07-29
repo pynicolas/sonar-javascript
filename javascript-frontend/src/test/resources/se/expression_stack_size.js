@@ -32,7 +32,7 @@ function main(a, b) {
     bar();
   }
   
-  /*
+  
   while(a && b) {}
 
   switch(a || b) {
@@ -50,7 +50,7 @@ function main(a, b) {
   case g:
     baz();
   }
-*/
+
 
   
 }

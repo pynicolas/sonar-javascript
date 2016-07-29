@@ -254,6 +254,10 @@ public class ExpressionStack {
         newStack.pop();
         newStack.push(assignedValue);
         break;
+      case CONDITIONAL_AND:
+      case CONDITIONAL_OR:
+        // do nothing
+        break;
       default:
         throw new IllegalArgumentException("Unexpected kind of expression to execute: " + kind);
     }
