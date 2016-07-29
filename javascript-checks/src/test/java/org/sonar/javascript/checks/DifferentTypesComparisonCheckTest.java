@@ -19,16 +19,14 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.ImmutableList;
 import java.io.File;
 import org.junit.Test;
 import org.sonar.javascript.checks.verifier.JavaScriptCheckVerifier;
-import org.sonar.javascript.se.SeChecksDispatcher;
 
 
 public class DifferentTypesComparisonCheckTest {
   @Test
   public void test() throws Exception {
-    JavaScriptCheckVerifier.verify(new SeChecksDispatcher(ImmutableList.of(new DifferentTypesComparisonCheck())), new File("src/test/resources/checks/DifferentTypesComparison.js"));
+    JavaScriptCheckVerifier.verify(new DifferentTypesComparisonCheck(), new File("src/test/resources/checks/DifferentTypesComparison.js"));
   }
 }

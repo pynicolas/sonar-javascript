@@ -19,19 +19,15 @@
  */
 package org.sonar.javascript.checks;
 
-import com.google.common.collect.ImmutableList;
 import java.io.File;
 import org.junit.Test;
 import org.sonar.javascript.checks.verifier.JavaScriptCheckVerifier;
-import org.sonar.javascript.se.SeCheck;
-import org.sonar.javascript.se.SeChecksDispatcher;
 
 public class CallabilityCheckTest {
 
   @Test
   public void test() {
-    JavaScriptCheckVerifier.verify(
-      new SeChecksDispatcher(ImmutableList.<SeCheck>of(new CallabilityCheck())),
+    JavaScriptCheckVerifier.verify(new CallabilityCheck(),
       new File("src/test/resources/checks/Callability.js"));
   }
 
