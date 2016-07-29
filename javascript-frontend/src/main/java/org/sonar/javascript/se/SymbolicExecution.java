@@ -151,6 +151,7 @@ public class SymbolicExecution {
     CfgBlock block = blockExecution.block();
     ProgramState currentState = blockExecution.state();
     boolean stopExploring = false;
+    SymbolicValue conditionSymbolicValue = null;
 
     for (Tree element : block.elements()) {
       beforeBlockElement(currentState, element);
@@ -205,13 +206,25 @@ public class SymbolicExecution {
       afterBlockElement(currentState, element);
 
       if (element instanceof ExpressionTree &&
-        getParent(element).is(Kind.EXPRESSION_STATEMENT, Kind.FOR_STATEMENT, Kind.FOR_IN_STATEMENT, Kind.FOR_OF_STATEMENT)) {
+        getParent(element).is(
+          Kind.EXPRESSION_STATEMENT,
+          Kind.IF_STATEMENT,
+          Kind.WHILE_STATEMENT,
+          Kind.DO_WHILE_STATEMENT,
+          Kind.FOR_STATEMENT,
+          Kind.FOR_IN_STATEMENT,
+          Kind.FOR_OF_STATEMENT,
+          Kind.SWITCH_STATEMENT,
+          Kind.CASE_CLAUSE)) {
+        conditionSymbolicValue = currentState.peekStack();
         currentState = currentState.clearStack();
+      } else if (getParent(element).is(Kind.CONDITIONAL_AND, Kind.CONDITIONAL_OR, Kind.CONDITIONAL_EXPRESSION)) {
+        conditionSymbolicValue = currentState.peekStack();
       }
     }
 
     if (!stopExploring) {
-      handleSuccessors(block, currentState);
+      handleSuccessors(block, currentState, conditionSymbolicValue);
     }
   }
 
@@ -253,15 +266,13 @@ public class SymbolicExecution {
     }
   }
 
-  private void handleSuccessors(CfgBlock block, ProgramState incomingState) {
+  private void handleSuccessors(CfgBlock block, ProgramState incomingState, SymbolicValue conditionSymbolicValue) {
     ProgramState currentState = incomingState;
     boolean shouldPushAllSuccessors = true;
 
     if (block instanceof CfgBranchingBlock) {
       CfgBranchingBlock branchingBlock = (CfgBranchingBlock) block;
       Tree branchingTree = branchingBlock.branchingTree();
-
-      SymbolicValue conditionSymbolicValue = currentState.peekStack();
 
       if (branchingTree.is(
         Kind.CONDITIONAL_EXPRESSION,
@@ -289,7 +300,6 @@ public class SymbolicExecution {
           shouldPushAllSuccessors = false;
         }
       }
-
 
     }
 
