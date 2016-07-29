@@ -33,7 +33,6 @@ import org.sonar.javascript.cfg.CfgBranchingBlock;
 import org.sonar.javascript.cfg.ControlFlowGraph;
 import org.sonar.javascript.se.sv.SymbolicValue;
 import org.sonar.javascript.tree.TreeKinds;
-import org.sonar.javascript.tree.impl.JavaScriptTree;
 import org.sonar.javascript.tree.symbols.Scope;
 import org.sonar.plugins.javascript.api.symbols.Symbol;
 import org.sonar.plugins.javascript.api.tree.Tree;
@@ -154,10 +153,6 @@ public class SymbolicExecution {
     boolean stopExploring = false;
 
     for (Tree element : block.elements()) {
-      System.out.println(element + " " + ((JavaScriptTree) element).getLine());
-      if (((JavaScriptTree) element).getLine() == 8) {
-        System.out.println("");
-      }
       beforeBlockElement(currentState, element);
 
       if (element.is(Kind.BRACKET_MEMBER_EXPRESSION, Kind.DOT_MEMBER_EXPRESSION)) {
