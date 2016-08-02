@@ -150,11 +150,15 @@ public class SymbolicExecution {
   private void execute(BlockExecution blockExecution) {
     CfgBlock block = blockExecution.block();
     ProgramState currentState = blockExecution.state();
+    // System.out.println("Exec block " + block + " which has " + block.elements().size() + " elements with state " + currentState);
     boolean stopExploring = false;
     SymbolicValue conditionSymbolicValue = null;
 
     for (Tree element : block.elements()) {
       beforeBlockElement(currentState, element);
+
+      String elementDesc = element + "(line " + ((JavaScriptTree) element).getLine() + ")";
+      // System.out.println(" Exec " + elementDesc + " state=" + currentState);
 
       if (element.is(Kind.BRACKET_MEMBER_EXPRESSION, Kind.DOT_MEMBER_EXPRESSION)) {
         ExpressionTree object = ((MemberExpressionTree) element).object();
@@ -176,7 +180,11 @@ public class SymbolicExecution {
         currentState = currentState.pushToStack(symbolicValue);
 
       } else if (element instanceof ExpressionTree && !element.is(Kind.CLASS_DECLARATION)) {
-        currentState = currentState.execute((ExpressionTree) element);
+        try {
+          currentState = currentState.execute((ExpressionTree) element);
+        } catch (Exception e) {
+          throw new IllegalStateException("at " + elementDesc, e);
+        }
       }
 
       if (TreeKinds.isAssignment(element)) {
@@ -205,19 +213,25 @@ public class SymbolicExecution {
 
       afterBlockElement(currentState, element);
 
-      if (element instanceof ExpressionTree &&
+      if (
+        element instanceof ExpressionTree &&
+        (isCondition(element) ||
         getParent(element).is(
           Kind.EXPRESSION_STATEMENT,
-          Kind.IF_STATEMENT,
+          // Kind.IF_STATEMENT,
           Kind.WHILE_STATEMENT,
           Kind.DO_WHILE_STATEMENT,
           Kind.FOR_STATEMENT,
           Kind.FOR_IN_STATEMENT,
           Kind.FOR_OF_STATEMENT,
           Kind.SWITCH_STATEMENT,
-          Kind.CASE_CLAUSE)) {
+            Kind.CASE_CLAUSE))) {
         conditionSymbolicValue = currentState.peekStack();
-        currentState = currentState.clearStack();
+        try {
+          currentState = currentState.clearStack();
+        } catch (Exception e) {
+          throw new IllegalStateException("ISE at " + elementDesc, e);
+        }
       } else if (getParent(element).is(Kind.CONDITIONAL_AND, Kind.CONDITIONAL_OR, Kind.CONDITIONAL_EXPRESSION)) {
         conditionSymbolicValue = currentState.peekStack();
       }
@@ -226,6 +240,14 @@ public class SymbolicExecution {
     if (!stopExploring) {
       handleSuccessors(block, currentState, conditionSymbolicValue);
     }
+  }
+
+  private static boolean isCondition(Tree tree) {
+    Tree parent = ((JavaScriptTree) tree).getParent();
+    while (parent.is(Kind.CONDITIONAL_AND, Kind.CONDITIONAL_OR, Kind.PARENTHESISED_EXPRESSION)) {
+      parent = ((JavaScriptTree) parent).getParent();
+    }
+    return parent.is(Kind.IF_STATEMENT);
   }
 
   private static Tree getParent(Tree tree) {
@@ -311,14 +333,14 @@ public class SymbolicExecution {
   private void pushConditionSuccessors(CfgBranchingBlock block, ProgramState currentState, SymbolicValue conditionSymbolicValue) {
     Tree lastElement = block.elements().get(block.elements().size() - 1);
     for (ProgramState newState : conditionSymbolicValue.constrain(currentState, Constraint.TRUTHY)) {
-      if (block.branchingTree().is(Kind.CONDITIONAL_AND)) {
+      if (block.branchingTree().is(Kind.CONDITIONAL_AND) && !isCondition(lastElement)) {
         newState = newState.removeLastValue();
       }
       pushSuccessor(block.trueSuccessor(), newState);
       conditionResults.put(lastElement, Truthiness.TRUTHY);
     }
     for (ProgramState newState : conditionSymbolicValue.constrain(currentState, Constraint.FALSY)) {
-      if (block.branchingTree().is(Kind.CONDITIONAL_OR)) {
+      if (block.branchingTree().is(Kind.CONDITIONAL_OR) && !isCondition(lastElement)) {
         newState = newState.removeLastValue();
       }
       pushSuccessor(block.falseSuccessor(), newState);

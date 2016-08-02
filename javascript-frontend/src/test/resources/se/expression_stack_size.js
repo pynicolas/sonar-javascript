@@ -1,8 +1,26 @@
 function main(a, b) {
+  if((x || a == (b || d)) && c){
+    foo();
+  }
+  
   (foo);
   foo(a && b);
   bar(a && b);
 
+  if (a) { 
+    foo();
+  }
+  
+  if (a && b) { 
+    foo();
+  }
+  
+  if (a || b) { 
+    foo();
+  }
+    
+  if (a || b)
+     foo();
 
   for (var i = 0; i < 10; i++) {
     foo()
