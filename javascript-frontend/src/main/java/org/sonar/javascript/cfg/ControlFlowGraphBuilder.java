@@ -43,6 +43,7 @@ import org.sonar.plugins.javascript.api.tree.expression.BinaryExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.CallExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ComputedPropertyNameTree;
 import org.sonar.plugins.javascript.api.tree.expression.ConditionalExpressionTree;
+import org.sonar.plugins.javascript.api.tree.expression.ExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.MemberExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.NewExpressionTree;
 import org.sonar.plugins.javascript.api.tree.expression.ObjectLiteralTree;
@@ -370,6 +371,27 @@ class ControlFlowGraphBuilder {
     }
   }
 
+  private void buildCondition(ExpressionTree expression, JsCfgBlock trueSuccessor, JsCfgBlock falseSuccessor) {
+    if (expression.is(Kind.CONDITIONAL_AND)) {
+      BinaryExpressionTree binary = (BinaryExpressionTree) expression;
+      buildCondition(binary.rightOperand(), trueSuccessor, falseSuccessor);
+      currentBlock = createBranchingBlock(expression, currentBlock, falseSuccessor);
+      buildCondition(binary.leftOperand(), currentBlock, falseSuccessor);
+
+    } else if (expression.is(Kind.CONDITIONAL_OR)) {
+      BinaryExpressionTree binary = (BinaryExpressionTree) expression;
+      buildCondition(binary.rightOperand(), trueSuccessor, falseSuccessor);
+      currentBlock = createBranchingBlock(expression, trueSuccessor, currentBlock);
+      buildCondition(binary.leftOperand(), trueSuccessor, currentBlock);
+
+    } else if (expression.is(Kind.PARENTHESISED_EXPRESSION)) {
+      buildCondition(((ParenthesisedExpressionTree) expression).expression(), trueSuccessor, falseSuccessor);
+
+    } else {
+      buildExpression(expression);
+    }
+  }
+
   private void visitBlock(BlockTree block) {
     build(block.statements());
   }
@@ -441,7 +463,7 @@ class ControlFlowGraphBuilder {
     JsCfgBlock thenBlock = currentBlock;
     JsCfgBranchingBlock branchingBlock = createBranchingBlock(tree, thenBlock, elseBlock);
     currentBlock = branchingBlock;
-    buildExpression(tree.condition());
+    buildCondition(tree.condition(), thenBlock, elseBlock);
   }
 
   private void visitForStatement(ForStatementTree tree) {

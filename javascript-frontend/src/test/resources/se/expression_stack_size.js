@@ -34,6 +34,10 @@ function main(a, b) {
   
   
   while(a && b) {}
+  
+  for(a || b; cond1 && cond2; i++, j++) {
+    foo();
+  }
 
   switch(a || b) {
   case c:

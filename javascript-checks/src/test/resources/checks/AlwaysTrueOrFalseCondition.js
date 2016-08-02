@@ -42,6 +42,7 @@ function not_condition() {
 function and_condition() {
   var a = random();
   if (a && !a) {} // Noncompliant {{Change this condition so that it does not always evaluate to "false".}}
+//         ^^
 }
 
 function or_condition() {
