@@ -29,6 +29,7 @@ import org.sonar.javascript.se.sv.EqualToSymbolicValue;
 import org.sonar.javascript.se.sv.LiteralSymbolicValue;
 import org.sonar.javascript.se.sv.LogicalNotSymbolicValue;
 import org.sonar.javascript.se.sv.PlusSymbolicValue;
+import org.sonar.javascript.se.sv.RelationalSymbolicValue;
 import org.sonar.javascript.se.sv.SpecialSymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValueWithConstraint;
@@ -222,8 +223,9 @@ public class ExpressionStack {
       case GREATER_THAN:
       case LESS_THAN_OR_EQUAL_TO:
       case GREATER_THAN_OR_EQUAL_TO:
-        pop(newStack, 2);
-        newStack.push(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+        SymbolicValue rightOperand = newStack.pop();
+        SymbolicValue leftOperand = newStack.pop();
+        newStack.push(new RelationalSymbolicValue(kind, leftOperand, rightOperand));
         break;
       case PLUS:
         newStack.push(new PlusSymbolicValue(newStack.pop(), newStack.pop()));

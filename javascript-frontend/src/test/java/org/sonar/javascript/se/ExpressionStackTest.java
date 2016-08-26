@@ -28,6 +28,7 @@ import org.sonar.javascript.parser.JavaScriptParserBuilder;
 import org.sonar.javascript.se.sv.EqualToSymbolicValue;
 import org.sonar.javascript.se.sv.LiteralSymbolicValue;
 import org.sonar.javascript.se.sv.LogicalNotSymbolicValue;
+import org.sonar.javascript.se.sv.RelationalSymbolicValue;
 import org.sonar.javascript.se.sv.SimpleSymbolicValue;
 import org.sonar.javascript.se.sv.SpecialSymbolicValue;
 import org.sonar.javascript.se.sv.SymbolicValue;
@@ -242,19 +243,21 @@ public class ExpressionStackTest {
   }
 
   @Test
-  public void boolean_expressions() throws Exception {
-    execute("a < b");
-    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+  public void relational_expressions() throws Exception {
+    execute("a < 42");
+    assertSingleValueInStack(RelationalSymbolicValue.class);
+    RelationalSymbolicValue sv = (RelationalSymbolicValue) stack.peek();
+    assertThat(sv.leftOperand()).isEqualTo(simple1);
+    assertThat(sv.rightOperand()).isInstanceOf(LiteralSymbolicValue.class);
 
     execute("a <= b");
-    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+    assertSingleValueInStack(RelationalSymbolicValue.class);
 
     execute("a > b");
-    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
-
+    assertSingleValueInStack(RelationalSymbolicValue.class);
 
     execute("a >= b");
-    assertSingleValueInStack(new SymbolicValueWithConstraint(Constraint.BOOLEAN));
+    assertSingleValueInStack(RelationalSymbolicValue.class);
   }
 
   @Test
