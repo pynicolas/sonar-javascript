@@ -22,18 +22,27 @@ package org.sonar.javascript.se.sv;
 import org.junit.Test;
 import org.sonar.javascript.se.Constraint;
 import org.sonar.javascript.se.ProgramState;
+import org.sonar.javascript.se.Relation;
 import org.sonar.plugins.javascript.api.tree.Tree.Kind;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RelationalSymbolicValueTest {
 
+  SymbolicValue sv1 = new SimpleSymbolicValue(1);
+  SymbolicValue sv2 = new SimpleSymbolicValue(2);
+  RelationalSymbolicValue relationalValue = new RelationalSymbolicValue(Kind.LESS_THAN, sv1, sv2);
+  
   @Test
   public void constraint() {
-    SymbolicValue sv1 = new SimpleSymbolicValue(1);
-    SymbolicValue sv2 = new SimpleSymbolicValue(2);
-    RelationalSymbolicValue relationalValue = new RelationalSymbolicValue(Kind.LESS_THAN, sv1, sv2);
     assertThat(relationalValue.constraint(ProgramState.emptyState())).isEqualTo(Constraint.BOOLEAN);
+  }
+  
+  @Test
+  public void relation() {
+    assertThat(relationalValue.relation(Constraint.BOOLEAN)).isNull();
+    assertThat(relationalValue.relation(Constraint.TRUTHY)).isEqualTo(new Relation(Kind.LESS_THAN, sv1, sv2));
+    assertThat(relationalValue.relation(Constraint.FALSY)).isEqualTo(new Relation(Kind.GREATER_THAN_OR_EQUAL_TO, sv1, sv2));
   }
 
 }

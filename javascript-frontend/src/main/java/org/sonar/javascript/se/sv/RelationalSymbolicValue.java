@@ -23,18 +23,19 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sonar.javascript.se.Constraint;
 import org.sonar.javascript.se.ProgramState;
+import org.sonar.javascript.se.Relation;
 import org.sonar.plugins.javascript.api.tree.Tree.Kind;
 
 public class RelationalSymbolicValue implements SymbolicValue {
 
-  private final Kind kind;
   private final SymbolicValue leftOperand;
   private final SymbolicValue rightOperand;
+  private final Relation relationWhenTrue;
 
   public RelationalSymbolicValue(Kind kind, SymbolicValue leftOperand, SymbolicValue rightOperand) {
-    this.kind = kind;
     this.leftOperand = leftOperand;
     this.rightOperand = rightOperand;
+    this.relationWhenTrue = new Relation(kind, leftOperand, rightOperand);
   }
 
   @Override
@@ -53,6 +54,16 @@ public class RelationalSymbolicValue implements SymbolicValue {
   @Override
   public Constraint constraint(ProgramState state) {
     return Constraint.BOOLEAN;
+  }
+
+  public Relation relation(Constraint constraint) {
+    if (constraint.isStricterOrEqualTo(Constraint.TRUTHY)) {
+      return relationWhenTrue;
+    }
+    if (constraint.isStricterOrEqualTo(Constraint.FALSY)) {
+      return relationWhenTrue.not();
+    }
+    return null;
   }
 
 }
