@@ -22,6 +22,7 @@ package org.sonar.javascript.se.sv;
 import java.util.List;
 import org.sonar.javascript.se.Constraint;
 import org.sonar.javascript.se.ProgramState;
+import org.sonar.javascript.se.Relation;
 
 public interface SymbolicValue {
 
@@ -29,6 +30,10 @@ public interface SymbolicValue {
 
   default Constraint constraint(ProgramState state) {
     return Constraint.ANY_VALUE;
+  }
+
+  default Relation relation(Constraint constraint) {
+    return null;
   }
 
 }

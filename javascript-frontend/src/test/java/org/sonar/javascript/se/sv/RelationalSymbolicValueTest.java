@@ -19,6 +19,7 @@
  */
 package org.sonar.javascript.se.sv;
 
+import java.util.List;
 import org.junit.Test;
 import org.sonar.javascript.se.Constraint;
 import org.sonar.javascript.se.ProgramState;
@@ -32,6 +33,7 @@ public class RelationalSymbolicValueTest {
   SymbolicValue sv1 = new SimpleSymbolicValue(1);
   SymbolicValue sv2 = new SimpleSymbolicValue(2);
   RelationalSymbolicValue relationalValue = new RelationalSymbolicValue(Kind.LESS_THAN, sv1, sv2);
+  ProgramState emptyState = ProgramState.emptyState();
   
   @Test
   public void constraint() {
@@ -43,6 +45,35 @@ public class RelationalSymbolicValueTest {
     assertThat(relationalValue.relation(Constraint.BOOLEAN)).isNull();
     assertThat(relationalValue.relation(Constraint.TRUTHY)).isEqualTo(new Relation(Kind.LESS_THAN, sv1, sv2));
     assertThat(relationalValue.relation(Constraint.FALSY)).isEqualTo(new Relation(Kind.GREATER_THAN_OR_EQUAL_TO, sv1, sv2));
+  }
+
+  @Test
+  public void constrain_to_stupid_constraint() {
+    assertThat(relationalValue.constrain(emptyState, Constraint.STRING)).isEmpty();
+  }
+
+  @Test
+  public void constrain_to_truthy() {
+    List<ProgramState> constrainedStates = relationalValue.constrain(emptyState, Constraint.TRUTHY);
+    assertThat(constrainedStates).hasSize(1);
+    assertThat(constrainedStates.get(0).getConstraint(relationalValue)).isEqualTo(Constraint.TRUE);
+  }
+
+  @Test
+  public void constrain_to_falsy() {
+    List<ProgramState> constrainedStates = relationalValue.constrain(emptyState, Constraint.FALSY);
+    assertThat(constrainedStates).hasSize(1);
+    assertThat(constrainedStates.get(0).getConstraint(relationalValue)).isEqualTo(Constraint.FALSE);
+  }
+
+  @Test
+  public void constrain_with_incompatible_relation() throws Exception {
+    RelationalSymbolicValue lessThan = new RelationalSymbolicValue(Kind.LESS_THAN, sv1, sv2);
+    RelationalSymbolicValue greaterThan = new RelationalSymbolicValue(Kind.GREATER_THAN, sv1, sv2);
+    ProgramState constrainedState = lessThan.constrain(emptyState, Constraint.TRUTHY).get(0);
+
+    assertThat(greaterThan.constrain(constrainedState, Constraint.TRUTHY)).isEmpty();
+    assertThat(lessThan.constrain(constrainedState, Constraint.FALSY)).isEmpty();
   }
 
 }

@@ -24,8 +24,10 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Maps;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -64,15 +66,16 @@ public class ProgramState {
       allReferencedValues.add(stack.peek());
     }
 
-    ImmutableMap.Builder<SymbolicValue, Constraint> constraintsBuilder = ImmutableMap.builder();
-    for (Entry<SymbolicValue, Constraint> entry : constraints.entrySet()) {
-      if (allReferencedValues.contains(entry.getKey())) {
-        constraintsBuilder.put(entry.getKey(), entry.getValue());
-      }
-    }
+    // ImmutableMap.Builder<SymbolicValue, Constraint> constraintsBuilder = ImmutableMap.builder();
+    // for (Entry<SymbolicValue, Constraint> entry : constraints.entrySet()) {
+    // if (allReferencedValues.contains(entry.getKey())) {
+    // constraintsBuilder.put(entry.getKey(), entry.getValue());
+    // }
+    // }
 
     this.values = values;
-    this.constraints = constraintsBuilder.build();
+    // this.constraints = constraintsBuilder.build();
+    this.constraints = constraints;
     this.stack = stack;
     this.counter = counter;
   }
@@ -132,11 +135,11 @@ public class ProgramState {
   }
 
   public ProgramState constrainOwnSV(@Nullable SymbolicValue value, @Nullable Constraint constraint) {
-    if (values.containsValue(value)) {
+    // if (values.containsValue(value)) {
       return this.constrain(value, constraint);
-    } else {
-      return this;
-    }
+    // } else {
+    // return this;
+    // }
   }
 
   private ImmutableMap<SymbolicValue, Constraint> replaceConstraint(SymbolicValue value, Constraint newConstraint) {
@@ -232,6 +235,17 @@ public class ProgramState {
     return newState;
   }
 
+  public List<Relation> relations() {
+    List<Relation> relations = new ArrayList<>();
+    for (Entry<SymbolicValue, Constraint> entry : constraints.entrySet()) {
+      Relation relation = entry.getKey().relation(entry.getValue());
+      if (relation != null) {
+        relations.add(relation);
+      }
+    }
+    return relations;
+  }
+  
   @Override
   public boolean equals(Object o) {
     if (this == o) {
